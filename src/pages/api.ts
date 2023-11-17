@@ -13,7 +13,7 @@ export const POST = async ({ request }) => {
       model: model,
       messages: [{
         role: "system",
-        content: "You are HoustonAI, a helpful assistant."
+        content: "You are HoustonAI, a helpful assistant based on OpenAI API."
       }, {
         role: "user",
         content: body.message
