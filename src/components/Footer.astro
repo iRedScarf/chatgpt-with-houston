@@ -1,0 +1,72 @@
+<div class="footer">
+  <p>
+    HoustonAI is an experimental AI assistant, trained to answer questions about Astro. Powered by <a href="https://astro.build/blog/astro-2/" target="_blank">Astro 2.0</a>, <a href="https://openai.com/api/" target="_blank">GPT-3</a>, <a href="https://github.com/hwchase17/langchain" target="_blank">LangChain</a>, and the <a href="https://docs.astro.build/" target="_blank">Astro documentation website.</a> 
+  </p>
+  <div class="links">
+    <a href="https://github.com/withastro/houston.astro.build" target="_blank"
+      >Learn More →
+    </a>
+    <a id="close-footer" href="#">
+      Close ✕
+    </a>
+  </div>
+</div>
+
+<script is:inline>
+  if (sessionStorage.getItem('notice:closed')) {
+    document.currentScript.previousElementSibling.remove();
+  }
+</script>
+
+<script>
+  const close = document.querySelector('#close-footer')!;
+  close.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.target.parentNode.parentNode.remove();
+    sessionStorage.setItem('notice:closed', 'true')
+  })
+</script>
+
+<style>
+
+  .footer {
+    margin: 1rem auto;
+    border: 1px solid #eb3fd9;
+    background: linear-gradient(45deg,#58242e 0%,#5f2965 100%);
+    position: relative;
+    grid-column: 1 / -1;
+    margin-top: 0;
+    font-size: 1rem;
+    display: flex;
+    flex-flow: column;
+    gap: 0.33em;
+    padding: 0.8rem;
+    font-family: "MD IO 0.5", system-ui, -apple-system, BlinkMacSystemFont;
+  }
+  .links {
+    display: flex;
+    flex-flow: row;
+    align-items: center;
+    gap: 12px;
+  }
+  p {
+    color: #ddd;
+    margin: 0;
+    margin-bottom: 1rem;
+  }
+  a {
+    color: #ddd;
+  }
+  a:is(:hover, :focus) {
+    color: white;
+  }
+
+  @media(min-width: 1080px) {
+    .footer {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      max-width: 380px;
+    }
+  }
+</style>

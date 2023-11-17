@@ -1,0 +1,20 @@
+{
+  "name": "houston",
+  "type": "module",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/netlify": "^3.0.4",
+    "@astrojs/vercel": "^5.2.0",
+    "astro": "^3.5.4",
+    "openai": "^4.19.0",
+    "smartypants": "^0.2.2"
+  }
+}

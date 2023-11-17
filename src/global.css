@@ -1,0 +1,418 @@
+/* Global styles */
+:root {
+  --container-width: 640px;
+}
+:global(*) {
+  box-sizing: border-box;
+}
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue",
+    sans-serif;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  position: relative;
+  background: #17191e;
+  color-scheme: dark;
+  height: 100vh;
+  height: 100dvh;
+  line-height: 1.33;
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+body::before {
+  position: absolute;
+  content: "";
+  mix-blend-mode: overlay;
+  opacity: 0.4;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background: url(/whitenoise.png);
+  background-repeat: repeat;
+  pointer-events: none;
+}
+@font-face {
+  font-family: "MD IO 0.5";
+  src: url("https://fonts-cdn.astro.build/MD IO/Web/MDIO0.5-Regular.woff2")
+    format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+a {
+  color: rgba(255, 255, 255, 0.8);
+}
+.container {
+  width: 100%;
+  max-width: var(--container-width);
+  margin-left: auto;
+  margin-right: auto;
+  box-shadow: 0 0 40px 2px #17191e;
+}
+header {
+  position: relative;
+  margin: 0.75rem;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 0;
+}
+header.inactive .intro {
+  display: none;
+  opacity: 0;
+  pointer-events: none;
+  user-select: none;
+}
+.intro {
+  max-width: 100%;
+  color: white;
+  transition: opacity 500ms ease-out;
+  text-align: left;
+}
+.intro .intro-content {
+  max-width: 400px;
+}
+.intro .intro-title {
+  margin: 2rem 0 0 0;
+  padding: 1rem 4rem;
+  font-size: 2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 8px;
+  justify-content: space-between;
+}
+.intro .intro-subtitle {
+  margin: 0.25rem 0 1rem 0;
+  color: rgba(133, 139, 152, 1);
+  text-align: left;
+  font-size: 1.3rem;
+  padding: 0 0.5rem;
+}
+.learn-more-button {
+  background: linear-gradient(83.21deg, #3245ff 0%, #bc52ee 100%);
+  padding: 8px 12px;
+  font-weight: bold;
+}
+main {
+  padding-left: 1rem;
+  padding-right: 1rem;
+  padding-bottom: 2rem;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  gap: 1rem;
+  overflow-y: auto;
+}
+footer {
+  display: flex;
+  flex-flow: column;
+  position: relative;
+}
+
+footer button {
+  position: absolute;
+  right: 19px;
+  top: 19px;
+  --size: 2.5rem;
+  width: var(--size);
+  height: var(--size);
+  border-radius: 50%;
+  border: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+footer svg {
+  margin-right: -0.25rem;
+}
+
+.autogrow {
+  display: grid;
+  overflow-y: scroll;
+  padding-left: 1px;
+}
+.autogrow::-webkit-scrollbar {
+  display: none;
+}
+.autogrow > textarea {
+  resize: none;
+  width: 100vw;
+  height: 100px;
+  max-width: var(--container-width);
+  outline: 0;
+  flex-grow: 1;
+  padding: 1rem;
+  padding-right: 68px;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue",
+    sans-serif;
+  font-size: 1.25rem;
+  line-height: 1;
+  border: 1px solid #343841;
+  border-radius: 4px;
+  margin-left: -1px;
+  margin-right: -1px;
+
+  background: #23262d;
+  color: #bfc1c9;
+
+  /* Place on top of each other */
+  grid-area: 1 / 1 / 2 / 2;
+}
+.autogrow > textarea:focus {
+  border-color: white;
+}
+
+button[type="submit"] {
+  background: linear-gradient(83.21deg, #3245ff 0%, #bc52ee 100%);
+}
+
+button {
+  --size: 2rem;
+  width: var(--size);
+  height: var(--size);
+  border: 0;
+  background: transparent;
+  margin: 0;
+  padding: 0;
+  color: rgb(255 255 255 / 60%);
+}
+
+button:hover {
+  color: rgb(255 255 255 / 100%);
+}
+
+button.fill {
+  background: rgb(255 255 255 / 100%);
+  border-radius: 100%;
+  color: #17191e;
+}
+
+.chat {
+  margin-top: 1rem;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 1rem;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* Global overrides (previously in <style is:global>) */
+::selection {
+  background: #4af2c8;
+  color: #17191e;
+}
+hey-houston {
+  z-index: 2;
+}
+code {
+  padding: 0.125em 0.33em;
+  border-radius: 0.33em;
+  font-size: inherit;
+  background: rgba(255 255 255 / 10%);
+}
+.chat pre,
+.chat code {
+  background: rgba(255 255 255 / 0.1);
+}
+.chat pre > code {
+  padding: 0;
+  border-radius: 0;
+  background: none;
+}
+.chat pre {
+  padding: 1rem 1.5rem;
+  margin-left: -1.5rem;
+  margin-right: -1.5rem;
+  max-width: calc(100% + 3rem);
+  overflow-x: auto;
+}
+.chat > .message {
+  --radius: 1.75rem;
+  position: relative;
+  border-radius: var(--radius);
+  grid-column: span 6 / -1;
+  padding: 1rem 1.5rem;
+  animation: fade-in 300ms ease-out forwards;
+}
+.chat > .message::after {
+  --size: 1rem;
+  content: "";
+  position: absolute;
+  bottom: 0;
+  height: var(--size);
+  width: var(--size);
+  z-index: 2;
+}
+.chat > .message[data-user] {
+  background: linear-gradient(83.21deg, #3245ff 0%, #bc52ee 100%);
+  border-bottom-right-radius: 0;
+  color: white;
+}
+.chat > .message[data-user]::after {
+  background: #bc52ee;
+  right: calc(var(--size) * -1);
+  border-bottom-right-radius: 8rem;
+  background: radial-gradient(
+    circle at top right,
+    rgba(0, 0, 0, 0) 0,
+    rgba(0, 0, 0, 0) var(--size),
+    #bc52ee var(--size)
+  );
+}
+.chat > .message:not([data-user])::after {
+  border-top-left-radius: var(--size);
+  border-bottom-left-radius: 8rem;
+  background: radial-gradient(
+    circle at top left,
+    rgba(0, 0, 0, 0) 0,
+    rgba(0, 0, 0, 0) var(--size),
+    #d6d8e2 var(--size)
+  );
+  left: calc(var(--size) * -1);
+}
+.chat > .message:not([data-user]) {
+  background: linear-gradient(180deg, #ffffff, #d6d8e2);
+  border-bottom-left-radius: 0;
+  grid-column: 1 / -1;
+}
+.chat > .message:not([data-user]) code {
+  background: rgba(0 0 0 / 0.075);
+}
+.message a {
+  color: #3245ff;
+}
+.message a:where(:visited) {
+  color: #bc52ee;
+}
+.heading {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.heading svg {
+  --size: 24px;
+  width: var(--size);
+  height: var(--size);
+}
+.sources {
+  position: relative;
+  grid-column: 1 / -1;
+  margin-top: 0;
+  font-size: 0.9rem;
+  display: flex;
+  flex-flow: column;
+  gap: 0.33em;
+  padding: 1rem 1.5rem;
+  color: rgba(255, 255, 255, 0.8);
+  font-family: "MD IO 0.5", system-ui, -apple-system, BlinkMacSystemFont;
+}
+.sources::before,
+.sources::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+}
+.sources::before {
+  z-index: -1;
+  background: #17191e;
+  top: 2px;
+  right: 2px;
+  bottom: 2px;
+  left: 2px;
+}
+.sources::after {
+  z-index: -2;
+  background: linear-gradient(247.23deg, #4af2c8 0%, #2f4cb3 100%);
+}
+.sources h5 {
+  margin: 1rem -1.5rem -1rem;
+  padding: 1rem 1.5rem;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.1) 0%,
+    rgba(255, 255, 255, 0) 200%
+  );
+  font-size: 0.9rem;
+  font-weight: normal;
+  color: white;
+}
+
+.sources h2 {
+  margin: 0.5rem 0 0.25rem 0;
+  color: white;
+}
+.sources > a {
+  display: block;
+  color: rgba(255, 255, 255, 0.8);
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.sources > h5 > a {
+  color: white;
+}
+.sources > a::before {
+  content: "> ";
+  display: inline-block;
+  margin-right: 8px;
+  opacity: 0.4;
+}
+.sources > a:hover::before {
+  opacity: 0.5;
+}
+.sources > a:is(:hover, :focus) {
+  color: rgba(255, 255, 255, 1);
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(1rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes shake {
+  0% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(0.75rem);
+  }
+  50% {
+    transform: translateX(-0.75rem);
+  }
+  75% {
+    transform: translateX(0.75rem);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+@media (min-width: 640px) {
+  .chat > .message {
+    grid-column: span 5 / -1;
+  }
+  .autogrow > textarea {
+    border-radius: 12px;
+    margin-bottom: 1.25rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .autogrow > textarea {
+    border-bottom: 0;
+  }
+}
