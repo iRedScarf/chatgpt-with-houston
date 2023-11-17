@@ -1,4 +1,6 @@
 import MarkdownIt from 'markdown-it';
+import mdHighlight from 'markdown-it-highlightjs';
+import mdKatex from 'markdown-it-katex';
 
 export async function makeAskRequest(message: string): Promise<any> {
   try {
@@ -21,7 +23,10 @@ export async function makeAskRequest(message: string): Promise<any> {
   }
 }
 
-const md = new MarkdownIt();
+const md = MarkdownIt({
+  linkify: true,
+  breaks: true,
+}).use(mdKatex).use(mdHighlight)
 
 export function markdown(input: string): string {
   return md.render(input);

@@ -47,7 +47,7 @@ const meta: Meta = {
             name="message"
             onkeydown="handleKeydown(event)"
             oninput="this.parentNode.dataset.value = this.value"
-            placeholder="Enter something..."
+            placeholder="Enter something... ( Shift+Enter for newline )"
             cols="30"></textarea>
           <button type="submit">
             <svg
@@ -134,10 +134,11 @@ const meta: Meta = {
         try {
           const res = await makeAskRequest(message);
           if (res && res.answer) {
+            const renderedResponse = markdown(res.answer);
             const bubble = h(
               "li",
               { class: "sources" },
-              res.answer
+              renderedResponse
             );
             messages.appendChild(bubble);
             bubble.scrollIntoView();
