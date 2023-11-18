@@ -32,8 +32,8 @@ const meta: Meta = {
             <HoustonAI />
           </p>
           <p class="intro-subtitle">
-            Hi, I'm ChatGPT, featuring the HoustonAI interface!
-            Feel free to ask me anything, I'll do my best to answer!
+            Hi, I'm ChatGPT, featuring the HoustonAI interface! Feel free to ask
+            me anything, I'll do my best to answer!
           </p>
         </div>
       </div>
@@ -107,6 +107,8 @@ const meta: Meta = {
 
       const messages = document.querySelector(".chat") as HTMLDivElement;
 
+      let history = [];
+
       async function handleSubmit(event: Event) {
         event.preventDefault();
         if (houston.classList.contains("loading")) {
@@ -118,6 +120,8 @@ const meta: Meta = {
         if (!message.trim()) {
           return;
         }
+
+        history.push({ role: "user", content: message });
 
         const bubble = h(
           "li",
@@ -133,18 +137,22 @@ const meta: Meta = {
 
         const thinking = houston.think();
         let emote: string = "default";
+
         try {
-          const res = await makeAskRequest(message);
+          const res = await makeAskRequest(message, history);
+
           if (res && res.answer) {
             const renderedResponse = markdown(res.answer);
-            const bubble = h(
-              "li",
-              { class: "sources" },
-              renderedResponse
-            );
+            const bubble = h("li", { class: "sources" }, renderedResponse);
             messages.appendChild(bubble);
             bubble.scrollIntoView();
             emote = "happy";
+            
+            history.push({ role: "assistant", content: res.answer });
+
+            if (history.length > 6) {
+              history = history.slice(history.length - 6);
+            }
           } else {
             emote = "disappointed";
             const bubble = h(

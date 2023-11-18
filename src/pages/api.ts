@@ -9,15 +9,21 @@ export const POST = async ({ request }) => {
     const openai = new OpenAI({
       apiKey,
     });
-    const response = await openai.chat.completions.create({
-      model: model,
-      messages: [{
+    const messages = [
+      {
         role: "system",
         content: "You are HoustonAI, a helpful assistant based on OpenAI API."
-      }, {
+      },
+      ...body.history,
+      {
         role: "user",
         content: body.message
-      }],
+      }
+    ];
+
+    const response = await openai.chat.completions.create({
+      model: model,
+      messages: messages,
     });
 
     if (!response.choices || response.choices.length === 0) {

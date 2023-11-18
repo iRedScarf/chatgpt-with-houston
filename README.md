@@ -29,7 +29,9 @@ To be continued...
 
 - [ ] Copy button for code blocks.
 
-- [ ] Support continuous chat.
+- [x] Support continuous chat.
+
+> HoustonAI will now remember the latest 3 complete conversation histories.
 
 - [ ] Support streaming response for OpenAI API.
 
