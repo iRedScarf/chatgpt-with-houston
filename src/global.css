@@ -373,6 +373,9 @@ code {
 .sources > a:is(:hover, :focus) {
   color: rgba(255, 255, 255, 1);
 }
+.z-index-100 {
+  z-index: 100;
+}
 @keyframes fade-in {
   from {
     opacity: 0;

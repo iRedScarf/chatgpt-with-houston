@@ -1,9 +1,11 @@
 ---
 import BaseHead, { Props as Meta } from "../components/BaseHead.astro";
-import Footer from "../components/Footer.astro";
 import Houston from "../components/Houston.astro";
 import HoustonAI from "../components/HoustonAI.astro";
-import Logo from "../components/Logo.astro";
+import AstroLogo from "../components/AstroLogo.astro";
+import GithubLogo from "../components/GithubLogo.astro";
+import Notice from "../components/Notice.astro";
+import Generator from "../components/Generator.astro";
 import "../global.css";
 import "katex/dist/katex.min.css";
 import "highlight.js/styles/atom-one-dark.css";
@@ -24,7 +26,8 @@ const meta: Meta = {
     <BaseHead {...meta} />
   </head>
   <body>
-    <Logo />
+    <AstroLogo />
+    <GithubLogo />
     <header class="container">
       <Houston glow />
       <div class="intro">
@@ -42,157 +45,12 @@ const meta: Meta = {
     <main class="container">
       <ul class="chat"></ul>
     </main>
-    <div class="container">
-      <Footer />
+    <Generator />
+    <div class="container z-index-100">
+      <Notice />
     </div>
-    <footer class="container">
-      <form action="#" onsubmit="handleSubmit(event)">
-        <div class="autogrow">
-          <textarea
-            id="message"
-            name="message"
-            onkeydown="handleKeydown(event)"
-            oninput="this.parentNode.dataset.value = this.value"
-            placeholder="Enter something... ( Shift+Enter for newline )"
-            cols="30"></textarea>
-          <button type="submit">
-            <svg
-              width="24"
-              height="24"
-              viewBox="0 0 32 32"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <title>Send</title>
-              <path
-                fill-rule="evenodd"
-                clip-rule="evenodd"
-                d="M5.64161 2.18531C6.04591 2.14469 6.453 2.22818 6.80868 2.42468L6.81379 2.4275L27.9217 14.25L27.9244 14.2515C28.2358 14.4244 28.4954 14.6774 28.6764 14.9842C28.8578 15.292 28.9535 15.6427 28.9535 16C28.9535 16.3572 28.8578 16.708 28.6764 17.0157C28.4954 17.3226 28.2358 17.5756 27.9244 17.7485L27.9217 17.75L6.80869 29.5753C6.45301 29.7718 6.04591 29.8553 5.64161 29.8147C5.2373 29.774 4.85495 29.6112 4.54548 29.3479C4.236 29.0846 4.01408 28.7332 3.90925 28.3406C3.80455 27.9485 3.82162 27.5338 3.95818 27.1517L7.93379 16L3.95868 4.84968C3.82192 4.46735 3.8045 4.05166 3.90925 3.65933C4.01408 3.26675 4.236 2.9154 4.54548 2.65208C4.85496 2.38875 5.2373 2.22594 5.64161 2.18531ZM27.4376 15.125L26.9489 15.9975L5.84155 4.17529L5.84205 4.17668L9.8113 15.3106C9.98396 15.7539 9.98396 16.246 9.8113 16.6894L5.84155 27.8247L26.9489 16.0025L26.9535 16L27.4376 15.125Z"
-                fill="currentColor"></path>
-              <path
-                fill-rule="evenodd"
-                clip-rule="evenodd"
-                d="M8 16C8 15.4477 8.44772 15 9 15H17C17.5523 15 18 15.4477 18 16C18 16.5523 17.5523 17 17 17H9C8.44772 17 8 16.5523 8 16Z"
-                fill="currentColor"></path>
-            </svg>
-          </button>
-        </div>
-      </form>
-    </footer>
-
     <style>
       @import "../global.css";
     </style>
-
-    <script>
-      import { makeAskRequest, markdown } from "../util";
-
-      const header = document.querySelector("header")!;
-      const houston = document.querySelector("hey-houston")!;
-
-      const h = (
-        tag: string,
-        props: Record<string, any> = {},
-        ...children: any[]
-      ) => {
-        const node = document.createElement(tag);
-        for (const [key, value] of Object.entries(props)) {
-          node.setAttribute(key, value);
-        }
-        for (const child of children) {
-          if (child instanceof Node) {
-            node.appendChild(child);
-          } else if (child || child === 0) {
-            node.innerHTML = child;
-          }
-        }
-        return node;
-      };
-
-      const messages = document.querySelector(".chat") as HTMLDivElement;
-
-      let history = [];
-
-      async function handleSubmit(event: Event) {
-        event.preventDefault();
-        if (houston.classList.contains("loading")) {
-          return;
-        }
-        const form = event.target as HTMLFormElement;
-        const textarea = form.message as HTMLTextAreaElement;
-        let message = textarea.value;
-        if (!message.trim()) {
-          return;
-        }
-
-        history.push({ role: "user", content: message });
-
-        const bubble = h(
-          "li",
-          { class: "message", "data-user": "" },
-          markdown(message)
-        );
-        messages.appendChild(bubble);
-        bubble.scrollIntoView();
-        header.classList.add("inactive");
-
-        textarea.value = "";
-        textarea.blur();
-
-        const thinking = houston.think();
-        let emote: string = "default";
-
-        try {
-          const res = await makeAskRequest(message, history);
-
-          if (res && res.answer) {
-            const renderedResponse = markdown(res.answer);
-            const bubble = h("li", { class: "sources" }, renderedResponse);
-            messages.appendChild(bubble);
-            bubble.scrollIntoView();
-            emote = "happy";
-            
-            history.push({ role: "assistant", content: res.answer });
-
-            if (history.length > 6) {
-              history = history.slice(history.length - 6);
-            }
-          } else {
-            emote = "disappointed";
-            const bubble = h(
-              "li",
-              { class: "sources" },
-              `No response.`
-            );
-            messages.appendChild(bubble);
-            bubble.scrollIntoView();
-          }
-        } catch (err) {
-          console.error(err);
-          emote = "disappointed";
-          const bubble = h(
-            "li",
-            { class: "sources" },
-            `Something went wrong! Please try again.`
-          );
-          messages.appendChild(bubble);
-          bubble.scrollIntoView();
-        } finally {
-          thinking.stop();
-          houston.emote(emote);
-          setTimeout(() => houston.emote("default"), 1250);
-        }
-      }
-
-      function handleKeydown(event: KeyboardEvent) {
-        if (event.shiftKey) return;
-        if (event.key !== "Enter") return;
-        event.preventDefault();
-        (event.target as HTMLElement).closest("form")!.requestSubmit();
-      }
-
-      globalThis.handleSubmit = handleSubmit;
-      globalThis.handleKeydown = handleKeydown;
-    </script>
   </body>
 </html>
