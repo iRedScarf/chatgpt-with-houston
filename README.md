@@ -5,7 +5,7 @@
 
 Powered by Astro and OpenAI API.
 
-**Note:** This project is for personal, **NON-COMMERCIAL** purposes and is **NOT an official project of the Astro team.**
+**Note:** This project is for personal, **NON-COMMERCIAL** purposes and is **NOT an OFFICIAL project of the Astro team.**
 
 ## Status
 
