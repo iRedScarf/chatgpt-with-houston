@@ -11,6 +11,7 @@
     "astro": "astro"
   },
   "dependencies": {
+    "@astrojs/solid-js": "^3.0.2",
     "@astrojs/vercel": "^5.2.0",
     "astro": "^3.5.4",
     "eventsource-parser": "^1.1.1",
@@ -21,6 +22,8 @@
     "markdown-it-katex": "^2.0.3",
     "openai": "^4.19.0",
     "smartypants": "^0.2.2",
+    "solid-js": "^1.8.5",
+    "solidjs-use": "^2.3.0",
     "undici": "^5.27.2"
   }
 }

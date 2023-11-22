@@ -1,9 +1,9 @@
 ---
 import BaseHead, { Props as Meta } from "../components/BaseHead.astro";
-import Houston from "../components/Houston.astro";
-import HoustonAI from "../components/HoustonAI.astro";
 import AstroLogo from "../components/AstroLogo.astro";
 import GithubLogo from "../components/GithubLogo.astro";
+import Houston from "../components/Houston.astro";
+import HoustonAI from "../components/HoustonAI.astro";
 import Notice from "../components/Notice.astro";
 import Generator from "../components/Generator.astro";
 import "../global.css";
@@ -36,7 +36,7 @@ const meta: Meta = {
             <HoustonAI />
           </p>
           <p class="intro-subtitle">
-            Hi, I'm Houston, based on OpenAI API gpt-3.5-turbo.
+            Hi, I'm Houston, based on OpenAI API.
             Feel free to ask me anything, I'll do my best to answer!
           </p>
         </div>
@@ -45,10 +45,10 @@ const meta: Meta = {
     <main class="container">
       <ul class="chat"></ul>
     </main>
-    <Generator />
     <div class="container z-index-100">
       <Notice />
     </div>
+    <Generator />
     <style>
       @import "../global.css";
     </style>

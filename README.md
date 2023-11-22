@@ -9,9 +9,7 @@ Powered by Astro and OpenAI API.
 
 ## Status
 
-This repo is forked from [withastro/houston.astro.build](https://github.com/withastro/houston.astro.build).
-
-Based on the front-end page code of [houston.astro.build](https://houston.astro.build), and has modified the code in the `src/pages/api.ts` and `src/util.ts` to enable communication with the OpenAI API within the HoustonAI UI.
+This repo is based on [withastro/houston.astro.build](https://github.com/withastro/houston.astro.build). Modifications have been made to the code in `src/pages/api.ts` and `src/util.ts` to enable communication with the OpenAI API within the HoustonAI interface.
 
 Currently, the project does not support rendering streaming responses and custom `System Role`, but these features are planned for future implementation.
 
