@@ -1,14 +1,13 @@
 ---
-import SendIcon from "./icons/Send.astro"
+import SendIcon from "./icons/Send.astro";
 ---
 
 <footer class="container">
-  <form action="#" onsubmit="handleSubmit(event)">
+  <form action="#" id="messageForm">
     <div class="autogrow">
       <textarea
         id="message"
         name="message"
-        onkeydown="handleKeydown(event)"
         oninput="this.parentNode.dataset.value = this.value"
         placeholder="Enter something... ( Shift+Enter for newline )"
         cols="30"></textarea>
@@ -20,10 +19,15 @@ import SendIcon from "./icons/Send.astro"
 </footer>
 
 <script>
-  import { makeAskRequest, markdown } from "../util";
+  import { createSignal, createEffect } from "solid-js";
+  import { markdown } from "../util";
 
   const header = document.querySelector("header")!;
   const houston = document.querySelector("hey-houston")!;
+  const messages = document.querySelector(".chat") as HTMLDivElement;
+  let history: any[] = [];
+
+  let [streamedResponse, setStreamedResponse] = createSignal("");
 
   const h = (
     tag: string,
@@ -43,10 +47,6 @@ import SendIcon from "./icons/Send.astro"
     }
     return node;
   };
-
-  const messages = document.querySelector(".chat") as HTMLDivElement;
-
-  let history = [];
 
   async function handleSubmit(event: Event) {
     event.preventDefault();
@@ -78,29 +78,40 @@ import SendIcon from "./icons/Send.astro"
     let emote: string = "default";
 
     try {
-      const res = await makeAskRequest(message, history);
+      console.log("Sending request with body:", { message, history }); // 添加日志记录
+      const response = await fetch("/api", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messages: history.concat({ role: "user", content: message }),
+          temperature: 0.7,
+        }),
+      });
 
-      if (res && res.answer) {
-        const renderedResponse = markdown(res.answer);
-        const bubble = h("li", { class: "sources" }, renderedResponse);
-        messages.appendChild(bubble);
-        bubble.scrollIntoView();
-        emote = "happy";
-        
-        history.push({ role: "assistant", content: res.answer });
+      if (!response.ok) {
+        const errorText = await response.text(); // 获取详细的错误信息
+        console.error("Response error:", errorText); // 记录详细的错误信息
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
-        if (history.length > 6) {
-          history = history.slice(history.length - 6);
+      const data = response.body;
+      if (!data) {
+        throw new Error("No data");
+      }
+
+      const reader = data.getReader();
+      const decoder = new TextDecoder("utf-8");
+      let done = false;
+
+      while (!done) {
+        const { value, done: readerDone } = await reader.read();
+        if (value) {
+          const text = decoder.decode(value, { stream: true });
+          setStreamedResponse((old) => old + text);
         }
-      } else {
-        emote = "disappointed";
-        const bubble = h(
-          "li",
-          { class: "sources" },
-          `No response.`
-        );
-        messages.appendChild(bubble);
-        bubble.scrollIntoView();
+        done = readerDone;
       }
     } catch (err) {
       console.error(err);
@@ -108,7 +119,7 @@ import SendIcon from "./icons/Send.astro"
       const bubble = h(
         "li",
         { class: "sources" },
-        `Something went wrong! Please try again.`
+        `Opps, Something went wrong! Error: ${err.message}`
       );
       messages.appendChild(bubble);
       bubble.scrollIntoView();
@@ -119,13 +130,29 @@ import SendIcon from "./icons/Send.astro"
     }
   }
 
+  createEffect(() => {
+    const responseText = streamedResponse();
+    if (responseText) {
+      const renderedResponse = markdown(responseText);
+      const bubble = h("li", { class: "sources" }, renderedResponse);
+      messages.appendChild(bubble);
+      bubble.scrollIntoView();
+    }
+  });
+
+  if (typeof window !== "undefined") {
+    const form = document.getElementById("messageForm");
+    const textarea = document.getElementById("message");
+    if (form && textarea) {
+      form.addEventListener("submit", handleSubmit);
+      textarea.addEventListener("keydown", handleKeydown);
+    }
+  }
+
   function handleKeydown(event: KeyboardEvent) {
     if (event.shiftKey) return;
     if (event.key !== "Enter") return;
     event.preventDefault();
     (event.target as HTMLElement).closest("form")!.requestSubmit();
   }
-
-  globalThis.handleSubmit = handleSubmit;
-  globalThis.handleKeydown = handleKeydown;
 </script>

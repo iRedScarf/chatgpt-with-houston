@@ -1,43 +1,56 @@
-import OpenAI from 'openai';
+// MIT License
 
-const apiKey = import.meta.env.OPENAI_API_KEY;
-const model = import.meta.env.OPENAI_API_MODEL || 'gpt-3.5-turbo';
+// Copyright (c) 2023-present, Diu
 
-export const POST = async ({ request }) => {
-  try {
-    const body = await request.json();
-    const openai = new OpenAI({
-      apiKey,
-    });
-    const messages = [
-      {
-        role: "system",
-        content: "You are HoustonAI, a helpful assistant based on OpenAI API."
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
+import { fetch } from 'undici'
+import { generatePayload, parseOpenAIStream } from '../util.ts'
+import type { APIRoute } from 'astro'
+
+const apiKey = import.meta.env.OPENAI_API_KEY
+const baseUrl = ((import.meta.env.OPENAI_API_BASE_URL) || 'https://api.openai.com').trim().replace(/\/$/, '')
+const temperature = parseFloat(import.meta.env.OPENAI_TEMPERATURE) || 0.7;
+
+export const POST: APIRoute = async(context) => {
+  const body = await context.request.json()
+  console.log("Received request with body:", body); // 添加日志记录
+  const { messages } = body
+  if (!messages) {
+    return new Response(JSON.stringify({
+      error: {
+        message: 'No input text.',
       },
-      ...body.history,
-      {
-        role: "user",
-        content: body.message
-      }
-    ];
-
-    const response = await openai.chat.completions.create({
-      model: model,
-      messages: messages,
-    });
-
-    if (!response.choices || response.choices.length === 0) {
-      throw new Error("No choices in response");
-    }
-
-    return new Response(JSON.stringify({ answer: response.choices[0].message.content }), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-  } catch (error) {
-    console.error('OpenAI request failed:', error);
-    return new Response(JSON.stringify({ message: 'Internal Server Error', error: error.message }), { status: 500 });
+    }), { status: 400 })
   }
-};
+
+  const initOptions = generatePayload(apiKey, messages, temperature)
+
+  const response = await fetch(`${baseUrl}/v1/chat/completions`, initOptions).catch((err: Error) => {
+    console.error("Error processing request:", err);
+    return new Response(JSON.stringify({
+      error: {
+        code: err.name,
+        message: err.message,
+      },
+    }), { status: 500 })
+  }) as Response
+
+  return parseOpenAIStream(response) as Response
+}
