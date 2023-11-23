@@ -25,11 +25,11 @@ import SendIcon from "./icons/Send.astro";
   const header = document.querySelector("header")!;
   const houston = document.querySelector("hey-houston")!;
   const messages = document.querySelector(".chat") as HTMLDivElement;
-  let history: any[] = [];
 
   let [streamedResponse, setStreamedResponse] = createSignal("");
   let isStreaming = false;
   let currentStreamBubble: HTMLElement;
+  let messagesList: any[] = [];
 
   const h = (
     tag: string,
@@ -62,7 +62,7 @@ import SendIcon from "./icons/Send.astro";
       return;
     }
 
-    history.push({ role: "user", content: message });
+    messagesList.push({ role: "user", content: message });
 
     const bubble = h(
       "li",
@@ -80,9 +80,11 @@ import SendIcon from "./icons/Send.astro";
     let emote: string = "default";
 
     setStreamedResponse("");
-    
+
     isStreaming = false;
     currentStreamBubble = null;
+
+    const recentMessages = messagesList.slice(-6);
 
     try {
       const response = await fetch("/api", {
@@ -91,7 +93,7 @@ import SendIcon from "./icons/Send.astro";
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          messages: history.concat({ role: "user", content: message }),
+          messages: recentMessages,
           temperature: 0.7,
         }),
       });
@@ -150,7 +152,6 @@ import SendIcon from "./icons/Send.astro";
         currentStreamBubble.innerHTML = markdown(responseText);
       }
     }
-
     if (responseText.endsWith("[DONE]")) {
       isStreaming = false;
     }
