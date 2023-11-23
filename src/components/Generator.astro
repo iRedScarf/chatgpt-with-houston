@@ -28,6 +28,8 @@ import SendIcon from "./icons/Send.astro";
   let history: any[] = [];
 
   let [streamedResponse, setStreamedResponse] = createSignal("");
+  let isStreaming = false;
+  let currentStreamBubble: HTMLElement;
 
   const h = (
     tag: string,
@@ -77,8 +79,12 @@ import SendIcon from "./icons/Send.astro";
     const thinking = houston.think();
     let emote: string = "default";
 
+    setStreamedResponse("");
+    
+    isStreaming = false;
+    currentStreamBubble = null;
+
     try {
-      console.log("Sending request with body:", { message, history }); // 添加日志记录
       const response = await fetch("/api", {
         method: "POST",
         headers: {
@@ -91,8 +97,6 @@ import SendIcon from "./icons/Send.astro";
       });
 
       if (!response.ok) {
-        const errorText = await response.text(); // 获取详细的错误信息
-        console.error("Response error:", errorText); // 记录详细的错误信息
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
@@ -133,10 +137,22 @@ import SendIcon from "./icons/Send.astro";
   createEffect(() => {
     const responseText = streamedResponse();
     if (responseText) {
-      const renderedResponse = markdown(responseText);
-      const bubble = h("li", { class: "sources" }, renderedResponse);
-      messages.appendChild(bubble);
-      bubble.scrollIntoView();
+      if (!isStreaming) {
+        currentStreamBubble = h(
+          "li",
+          { class: "sources" },
+          markdown(responseText)
+        );
+        messages.appendChild(currentStreamBubble);
+        currentStreamBubble.scrollIntoView();
+        isStreaming = true;
+      } else {
+        currentStreamBubble.innerHTML = markdown(responseText);
+      }
+    }
+
+    if (responseText.endsWith("[DONE]")) {
+      isStreaming = false;
     }
   });
 

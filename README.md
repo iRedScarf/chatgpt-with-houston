@@ -11,7 +11,7 @@ Powered by Astro and OpenAI API.
 
 This repo is based on [withastro/houston.astro.build](https://github.com/withastro/houston.astro.build). Modifications have been made to the code in `src/pages/api.ts` and `src/util.ts` to enable communication with the OpenAI API within the HoustonAI interface.
 
-Currently, the project does not support rendering streaming responses and custom `System Role`, but these features are planned for future implementation.
+Currently, the project does not support custom features such as `System Role` and `Temperature`, but plans to implement these in the future.
 
 ## How it works
 
@@ -47,7 +47,7 @@ You can control the website through environment variables.
 
 > HoustonAI will now remember the latest 3 complete conversation histories.
 
-- [ ] Support streaming response for OpenAI API.
+- [x] Support streaming response for OpenAI API.
 
 - [ ] Implement custom `System Role` functionality.
 
