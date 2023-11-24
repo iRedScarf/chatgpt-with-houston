@@ -25,7 +25,7 @@ import { generatePayload, parseOpenAIStream } from '../util.ts'
 import type { APIRoute } from 'astro'
 
 const apiKey = import.meta.env.OPENAI_API_KEY
-const baseUrl = ((import.meta.env.OPENAI_API_BASE_URL) || 'https://api.openai.com').trim().replace(/\/$/, '')
+const apiEndpoint = ((import.meta.env.OPENAI_API_ENDPOINT) || 'https://api.openai.com/v1/chat/completions').trim().replace(/\/$/, '')
 const temperature = parseFloat(import.meta.env.OPENAI_TEMPERATURE) || 0.7;
 
 export const POST: APIRoute = async(context) => {
@@ -42,7 +42,7 @@ export const POST: APIRoute = async(context) => {
 
   const initOptions = generatePayload(apiKey, messages, temperature)
 
-  const response = await fetch(`${baseUrl}/v1/chat/completions`, initOptions).catch((err: Error) => {
+  const response = await fetch(apiEndpoint, initOptions).catch((err: Error) => {
     console.error("Error processing request:", err);
     return new Response(JSON.stringify({
       error: {

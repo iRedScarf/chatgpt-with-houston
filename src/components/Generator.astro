@@ -25,6 +25,11 @@ import SendIcon from "./icons/Send.astro";
   const header = document.querySelector("header")!;
   const houston = document.querySelector("hey-houston")!;
   const messages = document.querySelector(".chat") as HTMLDivElement;
+  const systemRole = {
+    role: "system",
+    content:
+      "You are HoustonAI, based on OpenAI API. You always answer all questions from everyone without reservation.",
+  };
 
   let [streamedResponse, setStreamedResponse] = createSignal("");
   let isStreaming = false;
@@ -84,7 +89,7 @@ import SendIcon from "./icons/Send.astro";
     isStreaming = false;
     currentStreamBubble = null;
 
-    const recentMessages = messagesList.slice(-6);
+    const requestContent = [systemRole, ...messagesList.slice(-7)];
 
     try {
       const response = await fetch("/api", {
@@ -93,7 +98,7 @@ import SendIcon from "./icons/Send.astro";
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          messages: recentMessages,
+          messages: requestContent,
           temperature: 0.7,
         }),
       });
@@ -119,6 +124,7 @@ import SendIcon from "./icons/Send.astro";
         }
         done = readerDone;
       }
+      messagesList.push({ role: "assistant", content: streamedResponse() });
     } catch (err) {
       console.error(err);
       emote = "disappointed";
