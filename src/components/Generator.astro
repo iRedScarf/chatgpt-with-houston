@@ -84,7 +84,7 @@ import SendIcon from "./icons/Send.astro";
     isStreaming = false;
     currentStreamBubble = null;
 
-    const recentMessages = messagesList.slice(-6);
+    const recentMessages = messagesList.slice(-7);
 
     try {
       const response = await fetch("/api", {
@@ -119,6 +119,7 @@ import SendIcon from "./icons/Send.astro";
         }
         done = readerDone;
       }
+      messagesList.push({ role: "assistant", content: streamedResponse() });
     } catch (err) {
       console.error(err);
       emote = "disappointed";
