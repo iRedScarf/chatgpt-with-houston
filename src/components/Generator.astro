@@ -21,6 +21,7 @@ import SendIcon from "./icons/Send.astro";
 <script>
   import { createSignal, createEffect } from "solid-js";
   import { markdown } from "../util";
+  import type { ChatMessage, ErrorMessage } from "../types";
 
   const header = document.querySelector("header")!;
   const houston = document.querySelector("hey-houston")!;
@@ -33,8 +34,8 @@ import SendIcon from "./icons/Send.astro";
 
   let [streamedResponse, setStreamedResponse] = createSignal("");
   let isStreaming = false;
-  let currentStreamBubble: HTMLElement;
-  let messagesList: any[] = [];
+  let currentStreamBubble: HTMLElement | null;
+  let messagesList: ChatMessage[] = [];
 
   const h = (
     tag: string,
@@ -124,14 +125,16 @@ import SendIcon from "./icons/Send.astro";
         }
         done = readerDone;
       }
+      emote = "happy";
       messagesList.push({ role: "assistant", content: streamedResponse() });
     } catch (err) {
       console.error(err);
-      emote = "disappointed";
+      emote = "shocked";
+      const error = err as ErrorMessage;
       const bubble = h(
         "li",
         { class: "sources" },
-        `Opps, Something went wrong! Error: ${err.message}`
+        `Opps, Something went wrong! Error: ${error.message}`
       );
       messages.appendChild(bubble);
       bubble.scrollIntoView();
@@ -155,7 +158,9 @@ import SendIcon from "./icons/Send.astro";
         currentStreamBubble.scrollIntoView();
         isStreaming = true;
       } else {
-        currentStreamBubble.innerHTML = markdown(responseText);
+        if (currentStreamBubble !== null) {
+          currentStreamBubble.innerHTML = markdown(responseText);
+        }
       }
     }
     if (responseText.endsWith("[DONE]")) {

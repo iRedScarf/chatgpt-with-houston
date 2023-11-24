@@ -9,7 +9,7 @@ Powered by Astro and OpenAI API.
 
 ## Status
 
-This repo is based on [withastro/houston.astro.build](https://github.com/withastro/houston.astro.build). Modifications have been made to the code in `src/pages/api.ts` and `src/util.ts` to enable communication with the OpenAI API within the HoustonAI interface.
+This repo is inspired by [anse/chatgpt-demo](https://github.com/anse/chatgpt-demo), based on [withastro/houston.astro.build](https://github.com/withastro/houston.astro.build). Modifications have been made to the code in `src/components/Generator.astro`, `src/util.ts` and `src/pages/api.ts` to enable communication with the OpenAI API within the HoustonAI interface.
 
 Currently, the project does not support custom features such as `System Role` and `Temperature`, but plans to implement these in the future.
 
@@ -41,13 +41,13 @@ You can control the website through environment variables.
 
 - [x] Highlight code blocks with `highlight.js`.
 
-- [ ] Copy button for code blocks.
+- [x] Support streaming response for OpenAI API.
 
 - [x] Support continuous chat.
 
 > HoustonAI will now remember the latest 3 complete conversation histories.
 
-- [x] Support streaming response for OpenAI API.
+- [ ] Copy button for code blocks.
 
 - [ ] Implement custom `System Role` functionality.
 

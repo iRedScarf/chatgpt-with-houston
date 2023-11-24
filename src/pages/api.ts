@@ -30,7 +30,6 @@ const temperature = parseFloat(import.meta.env.OPENAI_TEMPERATURE) || 0.7;
 
 export const POST: APIRoute = async(context) => {
   const body = await context.request.json()
-  console.log("Received request with body:", body); // 添加日志记录
   const { messages } = body
   if (!messages) {
     return new Response(JSON.stringify({
@@ -42,6 +41,7 @@ export const POST: APIRoute = async(context) => {
 
   const initOptions = generatePayload(apiKey, messages, temperature)
 
+  // @ts-expect-error
   const response = await fetch(apiEndpoint, initOptions).catch((err: Error) => {
     console.error("Error processing request:", err);
     return new Response(JSON.stringify({
