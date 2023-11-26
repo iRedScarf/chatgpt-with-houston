@@ -35,7 +35,7 @@ import SendIcon from "./icons/Send.astro";
   let [streamedResponse, setStreamedResponse] = createSignal("");
   let isStreaming = false;
   let currentStreamBubble: HTMLElement | null;
-  let messagesList: ChatMessage[] = [];
+  let messageList: ChatMessage[] = [];
 
   const h = (
     tag: string,
@@ -68,7 +68,7 @@ import SendIcon from "./icons/Send.astro";
       return;
     }
 
-    messagesList.push({ role: "user", content: message });
+    messageList.push({ role: "user", content: message });
 
     const bubble = h(
       "li",
@@ -90,7 +90,7 @@ import SendIcon from "./icons/Send.astro";
     isStreaming = false;
     currentStreamBubble = null;
 
-    const requestContent = [systemRole, ...messagesList.slice(-7)];
+    const requestMessageList = [systemRole, ...messageList.slice(-7)];
 
     try {
       const response = await fetch("/api", {
@@ -99,7 +99,7 @@ import SendIcon from "./icons/Send.astro";
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          messages: requestContent,
+          messages: requestMessageList,
           temperature: 0.7,
         }),
       });
@@ -126,7 +126,7 @@ import SendIcon from "./icons/Send.astro";
         done = readerDone;
       }
       emote = "happy";
-      messagesList.push({ role: "assistant", content: streamedResponse() });
+      messageList.push({ role: "assistant", content: streamedResponse() });
     } catch (err) {
       console.error(err);
       emote = "shocked";
