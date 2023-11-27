@@ -29,13 +29,14 @@ import SendIcon from "./icons/Send.astro";
   const systemRole = {
     role: "system",
     content:
-      "You are HoustonAI, based on OpenAI API. You always answer all questions from everyone without reservation.",
+    "You are HoustonAI, based on OpenAI API. You are a very articulate, appropriate, and helpful AI, always answer all questions from everyone without reservation.",
   };
 
   let [streamedResponse, setStreamedResponse] = createSignal("");
   let isStreaming = false;
   let currentStreamBubble: HTMLElement | null;
   let messageList: ChatMessage[] = [];
+  let emote: string = "default";
 
   const h = (
     tag: string,
@@ -83,15 +84,12 @@ import SendIcon from "./icons/Send.astro";
     textarea.blur();
 
     const thinking = houston.think();
-    let emote: string = "default";
 
     setStreamedResponse("");
-
     isStreaming = false;
     currentStreamBubble = null;
 
     const requestMessageList = [systemRole, ...messageList.slice(-7)];
-
     try {
       const response = await fetch("/api", {
         method: "POST",
@@ -168,6 +166,13 @@ import SendIcon from "./icons/Send.astro";
     }
   });
 
+  function handleKeydown(event: KeyboardEvent) {
+    if (event.shiftKey) return;
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    (event.target as HTMLElement).closest("form")!.requestSubmit();
+  }
+
   if (typeof window !== "undefined") {
     const form = document.getElementById("messageForm");
     const textarea = document.getElementById("message");
@@ -175,12 +180,5 @@ import SendIcon from "./icons/Send.astro";
       form.addEventListener("submit", handleSubmit);
       textarea.addEventListener("keydown", handleKeydown);
     }
-  }
-
-  function handleKeydown(event: KeyboardEvent) {
-    if (event.shiftKey) return;
-    if (event.key !== "Enter") return;
-    event.preventDefault();
-    (event.target as HTMLElement).closest("form")!.requestSubmit();
   }
 </script>

@@ -30,7 +30,7 @@ const temperature = parseFloat(import.meta.env.OPENAI_TEMPERATURE) || 0.7;
 
 export const POST: APIRoute = async(context) => {
   const body = await context.request.json()
-  const { messages } = body
+  const { messages, temperature } = body
   if (!messages) {
     return new Response(JSON.stringify({
       error: {

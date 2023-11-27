@@ -21,12 +21,18 @@
 </script>
 
 <script>
-  const close = document.querySelector('#close-footer')!;
-  close.addEventListener('click', (e) => {
-    e.preventDefault();
-    e.target.parentNode.parentNode.remove();
-    sessionStorage.setItem('notice:closed', 'true')
-  })
+  if (typeof window !== "undefined") {
+    document.addEventListener("DOMContentLoaded", () => {
+      const close = document.querySelector('#close-footer');
+      if (close) {
+        close.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.target.parentNode.parentNode.remove();
+          sessionStorage.setItem('notice:closed', 'true')
+        });
+      }
+    });
+  }
 </script>
 
 <style>
