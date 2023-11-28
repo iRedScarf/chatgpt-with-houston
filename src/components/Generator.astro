@@ -68,6 +68,41 @@ import SendIcon from "./icons/Send.astro";
     bubble.scrollIntoView();
   }
 
+  function updateSessionStorage() {
+    sessionStorage.setItem("chatMessages", JSON.stringify(messageList));
+  }
+
+  function loadSessionStorage() {
+    const storedMessages = sessionStorage.getItem("chatMessages");
+    return storedMessages ? JSON.parse(storedMessages) : [];
+  }
+
+  if (typeof window !== "undefined") {
+    const form = document.getElementById("messageForm");
+    const textarea = document.getElementById("message");
+    if (form && textarea) {
+      form.addEventListener("submit", handleSubmit);
+      textarea.addEventListener("keydown", handleKeydown);
+    }
+
+    messageList = loadSessionStorage();
+    if (messageList.length > 0) {
+      header.classList.add("inactive");
+      const thinking = houston.think();
+      setTimeout(() => {
+        thinking.stop();
+        houston.emote("happy");
+      }, 1250);
+    }
+    messageList.forEach((msg) => {
+      if (msg.role === "user") {
+        createBubble({ class: "message", "data-user": "" }, msg.content, true);
+      } else if (msg.role === "assistant") {
+        createBubble({ class: "sources" }, msg.content, true);
+      }
+    });
+  }
+
   async function handleSubmit(event: Event) {
     event.preventDefault();
     if (houston.classList.contains("loading")) {
@@ -81,6 +116,7 @@ import SendIcon from "./icons/Send.astro";
     }
 
     messageList.push({ role: "user", content: message });
+    updateSessionStorage();
     createBubble({ class: "message", "data-user": "" }, message, true);
     header.classList.add("inactive");
 
@@ -127,8 +163,12 @@ import SendIcon from "./icons/Send.astro";
         }
         done = readerDone;
       }
-      emote = "happy";
-      messageList.push({ role: "assistant", content: streamedResponse() });
+
+      if (streamedResponse) {
+        emote = "happy";
+        messageList.push({ role: "assistant", content: streamedResponse() });
+        updateSessionStorage();
+      }
     } catch (err) {
       console.error(err);
       emote = "shocked";
@@ -167,14 +207,5 @@ import SendIcon from "./icons/Send.astro";
     if (event.key !== "Enter") return;
     event.preventDefault();
     (event.target as HTMLElement).closest("form")!.requestSubmit();
-  }
-
-  if (typeof window !== "undefined") {
-    const form = document.getElementById("messageForm");
-    const textarea = document.getElementById("message");
-    if (form && textarea) {
-      form.addEventListener("submit", handleSubmit);
-      textarea.addEventListener("keydown", handleKeydown);
-    }
   }
 </script>
