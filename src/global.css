@@ -414,10 +414,22 @@ code {
     border-radius: 12px;
     margin-bottom: 1.25rem;
   }
+  .disclaimer {
+    width: 100%;
+    position: absolute;
+    bottom: 0.15em;
+    text-align: center;
+    font-size: 0.8em;
+    color: rgba(133,139,152,1);
+    opacity: 0.85;
+  }
 }
 
 @media (max-width: 640px) {
   .autogrow > textarea {
     border-bottom: 0;
+  }
+  .disclaimer {
+    display: none;
   }
 }

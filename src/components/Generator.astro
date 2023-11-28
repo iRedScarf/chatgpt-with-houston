@@ -16,6 +16,7 @@ import SendIcon from "./icons/Send.astro";
       </button>
     </div>
   </form>
+  <span class="disclaimer">ChatGPT can make mistakes. Consider checking important information.</span>
 </footer>
 
 <script>
@@ -69,11 +70,11 @@ import SendIcon from "./icons/Send.astro";
   }
 
   function updateSessionStorage() {
-    sessionStorage.setItem("chatMessages", JSON.stringify(messageList));
+    sessionStorage.setItem("messageList", JSON.stringify(messageList));
   }
 
   function loadSessionStorage() {
-    const storedMessages = sessionStorage.getItem("chatMessages");
+    const storedMessages = sessionStorage.getItem("messageList");
     return storedMessages ? JSON.parse(storedMessages) : [];
   }
 
@@ -185,19 +186,19 @@ import SendIcon from "./icons/Send.astro";
   }
 
   createEffect(() => {
-    const responseText = streamedResponse();
-    if (responseText) {
+    const responseMessage = streamedResponse();
+    if (responseMessage) {
       if (!isStreaming) {
-        createBubble({ class: "sources" }, markdown(responseText), false);
+        createBubble({ class: "sources" }, responseMessage, true);
         currentStreamBubble = messages.lastChild as HTMLElement;
         isStreaming = true;
       } else {
         if (currentStreamBubble) {
-          currentStreamBubble.innerHTML = markdown(responseText);
+          currentStreamBubble.innerHTML = markdown(responseMessage);
         }
       }
     }
-    if (responseText.endsWith("[DONE]")) {
+    if (responseMessage.endsWith("[DONE]")) {
       isStreaming = false;
     }
   });
