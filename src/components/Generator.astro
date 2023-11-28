@@ -29,7 +29,7 @@ import SendIcon from "./icons/Send.astro";
   const systemRole = {
     role: "system",
     content:
-    "You are HoustonAI, based on OpenAI API. You are a very articulate, appropriate, and helpful AI, always answer all questions from everyone without reservation.",
+      "You are HoustonAI, based on OpenAI API. You are a very articulate, appropriate, and helpful AI, always answer all questions from everyone without reservation.",
   };
 
   let [streamedResponse, setStreamedResponse] = createSignal("");
@@ -57,27 +57,31 @@ import SendIcon from "./icons/Send.astro";
     return node;
   };
 
+  function createBubble(
+    attributes: Record<string, any>,
+    content: string,
+    isMarkdown = false
+  ) {
+    const bubbleContent = isMarkdown ? markdown(content) : content;
+    const bubble = h("li", attributes, bubbleContent);
+    messages.appendChild(bubble);
+    bubble.scrollIntoView();
+  }
+
   async function handleSubmit(event: Event) {
     event.preventDefault();
     if (houston.classList.contains("loading")) {
       return;
     }
-    const form = event.target as HTMLFormElement;
-    const textarea = form.message as HTMLTextAreaElement;
+
+    const textarea = document.getElementById("message") as HTMLTextAreaElement;
     let message = textarea.value;
     if (!message.trim()) {
       return;
     }
 
     messageList.push({ role: "user", content: message });
-
-    const bubble = h(
-      "li",
-      { class: "message", "data-user": "" },
-      markdown(message)
-    );
-    messages.appendChild(bubble);
-    bubble.scrollIntoView();
+    createBubble({ class: "message", "data-user": "" }, message, true);
     header.classList.add("inactive");
 
     textarea.value = "";
@@ -129,13 +133,10 @@ import SendIcon from "./icons/Send.astro";
       console.error(err);
       emote = "shocked";
       const error = err as ErrorMessage;
-      const bubble = h(
-        "li",
+      createBubble(
         { class: "sources" },
         `Opps, Something went wrong! Error: ${error.message}`
       );
-      messages.appendChild(bubble);
-      bubble.scrollIntoView();
     } finally {
       thinking.stop();
       houston.emote(emote);
@@ -147,16 +148,11 @@ import SendIcon from "./icons/Send.astro";
     const responseText = streamedResponse();
     if (responseText) {
       if (!isStreaming) {
-        currentStreamBubble = h(
-          "li",
-          { class: "sources" },
-          markdown(responseText)
-        );
-        messages.appendChild(currentStreamBubble);
-        currentStreamBubble.scrollIntoView();
+        createBubble({ class: "sources" }, markdown(responseText), false);
+        currentStreamBubble = messages.lastChild as HTMLElement;
         isStreaming = true;
       } else {
-        if (currentStreamBubble !== null) {
+        if (currentStreamBubble) {
           currentStreamBubble.innerHTML = markdown(responseText);
         }
       }
