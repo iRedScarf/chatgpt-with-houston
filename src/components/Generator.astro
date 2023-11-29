@@ -9,14 +9,16 @@ import SendIcon from "./icons/Send.astro";
         id="message"
         name="message"
         oninput="this.parentNode.dataset.value = this.value"
-        placeholder="Enter something... ( Shift+Enter for newline )"
+        placeholder="Enter something..."
         cols="30"></textarea>
       <button type="submit">
         <SendIcon />
       </button>
     </div>
   </form>
-  <span class="disclaimer">ChatGPT can make mistakes. Consider checking important information.</span>
+  <span class="disclaimer"
+    >ChatGPT can make mistakes. Consider checking important information.</span
+  >
 </footer>
 
 <script>
@@ -99,7 +101,7 @@ import SendIcon from "./icons/Send.astro";
       if (msg.role === "user") {
         createBubble({ class: "message", "data-user": "" }, msg.content, true);
       } else if (msg.role === "assistant") {
-        createBubble({ class: "sources" }, msg.content, true);
+        createBubble({ class: "message" }, msg.content, true);
       }
     });
   }
@@ -189,7 +191,7 @@ import SendIcon from "./icons/Send.astro";
     const responseMessage = streamedResponse();
     if (responseMessage) {
       if (!isStreaming) {
-        createBubble({ class: "sources" }, responseMessage, true);
+        createBubble({ class: "message" }, responseMessage, true);
         currentStreamBubble = messages.lastChild as HTMLElement;
         isStreaming = true;
       } else {
@@ -203,10 +205,26 @@ import SendIcon from "./icons/Send.astro";
     }
   });
 
-  function handleKeydown(event: KeyboardEvent) {
-    if (event.shiftKey) return;
-    if (event.key !== "Enter") return;
-    event.preventDefault();
-    (event.target as HTMLElement).closest("form")!.requestSubmit();
+  function handleKeydown(event) {
+    const isMobile =
+      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        navigator.userAgent
+      );
+    if (isMobile) {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        const textarea = event.target;
+        const cursorPosition = textarea.selectionStart;
+        const textBeforeCursor = textarea.value.substring(0, cursorPosition);
+        const textAfterCursor = textarea.value.substring(cursorPosition);
+        textarea.value = textBeforeCursor + "\n" + textAfterCursor;
+        textarea.selectionStart = textarea.selectionEnd = cursorPosition + 1;
+      }
+    } else {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        event.target.closest("form").requestSubmit();
+      }
+    }
   }
 </script>
