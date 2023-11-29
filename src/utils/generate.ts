@@ -1,18 +1,3 @@
-import MarkdownIt from "markdown-it";
-import mdHighlight from "markdown-it-highlightjs";
-import mdKatex from "markdown-it-katex";
-
-const md = MarkdownIt({
-  linkify: true,
-  breaks: true,
-})
-  .use(mdKatex)
-  .use(mdHighlight);
-
-export function markdown(input: string): string {
-  return md.render(input);
-}
-
 // MIT License
 
 // Copyright (c) 2023-present, Diu
@@ -37,7 +22,7 @@ export function markdown(input: string): string {
 
 import { createParser } from "eventsource-parser";
 import type { ParsedEvent, ReconnectInterval } from "eventsource-parser";
-import type { ChatMessage } from "./types";
+import type { ChatMessage } from "../types";
 
 export const model = import.meta.env.OPENAI_API_MODEL || "gpt-3.5-turbo";
 

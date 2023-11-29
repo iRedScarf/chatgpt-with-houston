@@ -21,7 +21,7 @@
 // SOFTWARE.
 
 import { fetch } from 'undici'
-import { generatePayload, parseOpenAIStream } from '../util.ts'
+import { generatePayload, parseOpenAIStream } from '../utils/generate'
 import type { APIRoute } from 'astro'
 
 const apiKey = import.meta.env.OPENAI_API_KEY
@@ -41,7 +41,6 @@ export const POST: APIRoute = async(context) => {
 
   const initOptions = generatePayload(apiKey, messages, temperature)
 
-  // @ts-expect-error
   const response = await fetch(apiEndpoint, initOptions).catch((err: Error) => {
     console.error("Error processing request:", err);
     return new Response(JSON.stringify({
