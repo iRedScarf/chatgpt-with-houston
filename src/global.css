@@ -278,7 +278,7 @@ code {
   left: calc(var(--size) * -1);
 }
 .chat > .message:not([data-user]) {
-  background: linear-gradient(247.23deg, #4af2c8 0%, #2f4cb3 100%);
+  background: linear-gradient(247.23deg, rgba(74 242 200 / 85%) 0%, #2f4cb3 100%);
   border-bottom-left-radius: 0;
   grid-column: 1 / -1;
   color: white;
