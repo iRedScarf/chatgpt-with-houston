@@ -35,6 +35,12 @@ const title = [Astro.props.title, siteName].filter(Boolean).join(" | ");
 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 <link rel="mask-icon" href="/favicon.svg" color="#8D46E7" />
 
+<link rel="manifest" href="/manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="HoustonAI">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+
 <title set:html={title} />
 
 <SEO
