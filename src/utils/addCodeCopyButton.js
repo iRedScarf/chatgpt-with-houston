@@ -1,4 +1,4 @@
-export function addCopyButton(bubble) {
+export function addCodeCopyButton(bubble) {
   const codeBlocks = bubble.querySelectorAll("pre");
   codeBlocks.forEach((codeBlock) => {
     const copyButton = document.createElement("button");

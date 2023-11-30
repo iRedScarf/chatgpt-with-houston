@@ -24,7 +24,7 @@ import SendIcon from "./icons/Send.astro";
 <script>
   import { createSignal, createEffect } from "solid-js";
   import { markdown } from "../utils/markdown";
-  import { addCopyButton } from "../utils/codeCopyButton";
+  import { addCodeCopyButton } from "../utils/addCodeCopyButton";
   import type { ChatMessage, ErrorMessage } from "../types";
 
   const header = document.querySelector("header")!;
@@ -69,8 +69,8 @@ import SendIcon from "./icons/Send.astro";
     const bubbleContent = isMarkdown ? markdown(content) : content;
     const bubble = h("li", attributes, bubbleContent);
     messages.appendChild(bubble);
-    addCopyButton(bubble);
-    bubble.scrollIntoView();
+    addCodeCopyButton(bubble);
+    bubble.scrollIntoView({ behavior: "smooth" });
   }
 
   function updateSessionStorage() {
@@ -205,7 +205,10 @@ import SendIcon from "./icons/Send.astro";
     if (responseMessage.endsWith("[DONE]")) {
       isStreaming = false;
     }
-    addCopyButton(currentStreamBubble);
+    addCodeCopyButton(currentStreamBubble);
+    if (currentStreamBubble) {
+      currentStreamBubble.scrollIntoView({ behavior: "instant" });
+    }
   });
 
   function handleKeydown(event) {
