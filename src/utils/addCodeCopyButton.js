@@ -1,7 +1,8 @@
-export function addCopyButton(bubble) {
+export function addCodeCopyButton(bubble) {
   const codeBlocks = bubble.querySelectorAll("pre");
   codeBlocks.forEach((codeBlock) => {
     const copyButton = document.createElement("button");
+    copyButton.setAttribute("aria-label", "Copy code");
     copyButton.innerHTML = `
       <svg
         width="16"
@@ -31,6 +32,7 @@ export function addCopyButton(bubble) {
       navigator.clipboard
         .writeText(codeBlock.innerText)
         .then(() => {
+          copyButton.setAttribute("aria-label", "Copy copied");
           copyButton.innerHTML = `
             <svg
               width="16"
@@ -70,14 +72,16 @@ export function addCopyButton(bubble) {
                 fill="currentColor"
               ></path>
             </svg>`;
+            copyButton.setAttribute("aria-label", "Copy code");
           }, 1250);
         })
         .catch(() => {
+          copyButton.setAttribute("aria-label", "Code copy failed");
           copyButton.innerHTML = `
           <svg
-            width="16"
-            height="16"
-            viewBox="0 0 16 16"
+            width="30"
+            height="30"
+            viewBox="0 0 28 24"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
           >
@@ -85,7 +89,7 @@ export function addCopyButton(bubble) {
             <path
               fill-rule="evenodd"
               clip-rule="evenodd"
-              d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Zm9.78-2.22-5.5 5.5a.749.749 0 0 1-1.275-.326.749.749 0 0 1 .215-.734l5.5-5.5a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042Z"
+              d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575Zm1.763.707a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368Zm.53 3.996v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"
               fill="currentColor"></path>
           </svg>`;
           setTimeout(() => {
@@ -111,6 +115,7 @@ export function addCopyButton(bubble) {
                 fill="currentColor"
               ></path>
             </svg>`;
+            copyButton.setAttribute("aria-label", "Copy code");
           }, 1500);
         });
     };

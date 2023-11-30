@@ -41,15 +41,15 @@ You can control the website through environment variables.
 
 - [x] Highlight code blocks with `highlight.js`.
 
+- [x] Copy button for code blocks.
+
 - [x] Support streaming response for OpenAI API.
 
 - [x] Support continuous chat.
 
 > HoustonAI will now remember the latest 3 complete conversation histories.
 
-- [ ] Copy button for code blocks.
-
-- [ ] Implement custom `System Role` functionality.
+- [ ] Implement custom `System Role` and `Temperature` functionality.
 
 ## Contributing
 
