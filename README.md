@@ -51,6 +51,8 @@ You can control the website through environment variables.
 
 - [ ] Implement custom `System Role` and `Temperature` functionality.
 
+- [ ] Password verification page.
+
 ## Contributing
 
 This project exists thanks to all those who contributed.
