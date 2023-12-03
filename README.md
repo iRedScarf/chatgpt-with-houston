@@ -27,11 +27,11 @@ To be continued...
 
 You can control the website through environment variables.
 
-| Name | Description | Default |
-| --- | --- | --- |
-| `OPENAI_API_KEY` | Your API Key for OpenAI. | `null` |
-| `OPENAI_API_MODEL` | ID of the model to use. [List models](https://platform.openai.com/docs/api-reference/models/list) | `gpt-3.5-turbo` |
-| `OPENAI_API_BASE_URL` | Custom base url for OpenAI API. | `https://api.openai.com` |
+| Name | Description | Setting | Default |
+| --- | --- | --- | --- |
+| `OPENAI_API_KEY` | Your API Key for OpenAI. | Required | `null` |
+| `OPENAI_API_MODEL` | ID of the model to use. [List models](https://platform.openai.com/docs/api-reference/models/list) | Optional | `gpt-3.5-turbo` |
+| `OPENAI_API_BASE_URL` | Base URL for OpenAI API. | Optional | `https://api.openai.com/v1/chat/completions` |
 
 ## TODO
 
