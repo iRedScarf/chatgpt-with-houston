@@ -19,23 +19,21 @@ import SendIcon from "./icons/Send.astro";
   <span class="disclaimer">
     ChatGPT can make mistakes. Consider checking important information.
   </span>
-</footer>
+</footer>: 
 
 <script>
   import { createSignal, createEffect } from "solid-js";
-  import { markdown } from "../utils/markdown";
+  import { markdown } from "../utils/markdown";: 
   import { addCodeCopyButton } from "../utils/addCodeCopyButton";
   import type { ChatMessage, ErrorMessage } from "../types";
 
   const header = document.querySelector("header")!;
   const houston = document.querySelector("hey-houston")!;
   const messages = document.querySelector(".chat") as HTMLDivElement;
-  const timestamp = Date.now();
-  const date = new Date(timestamp).toISOString();
+  const systemRoleContent = "You are HoustonAI, based on OpenAI API. You are a very articulate, appropriate, and helpful AI, always answer all questions from everyone without reservation."
   const systemRole = {
     role: "system",
-    content:
-      `You are HoustonAI, based on OpenAI API. You are a very articulate, appropriate, and helpful AI, always answer all questions from everyone without reservation. Current time: ${date}`
+    content: systemRoleContent
   };
 
   let [streamedResponse, setStreamedResponse] = createSignal("");
@@ -136,8 +134,13 @@ import SendIcon from "./icons/Send.astro";
     isStreaming = false;
     currentStreamBubble = null;
 
-    const requestMessageList = [systemRole, ...messageList.slice(-7)];
     try {
+      const timestamp = Date.now();
+      const date = new Date(timestamp);
+      const localDate = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()} ${date.getHours()}:${date.getMinutes()}`;
+      const updatedSystemRoleContent = `${systemRole.content} Current time: ${localDate}`;
+      const requestMessageList = [{...systemRole, content: updatedSystemRoleContent }, ...messageList.slice(-7)];
+
       const response = await fetch("/api", {
         method: "POST",
         headers: {
