@@ -30,10 +30,11 @@ import SendIcon from "./icons/Send.astro";
   const header = document.querySelector("header")!;
   const houston = document.querySelector("hey-houston")!;
   const messages = document.querySelector(".chat") as HTMLDivElement;
-  const systemRoleContent = "You are HoustonAI, based on OpenAI API. You are a very articulate, appropriate, and helpful AI, always answer all questions from everyone without reservation."
+  const systemRoleContent =
+    "You are HoustonAI, based on OpenAI API. You are a very articulate, appropriate, and helpful AI, always answer all questions from everyone without reservation.";
   const systemRole = {
     role: "system",
-    content: systemRoleContent
+    content: systemRoleContent,
   };
 
   let [streamedResponse, setStreamedResponse] = createSignal("");
@@ -61,15 +62,57 @@ import SendIcon from "./icons/Send.astro";
     return node;
   };
 
+  function createRegenerateButton(bubble) {
+    if (!bubble.querySelector(".regenerate-btn")) {
+      const regenerateButton = h("button", { class: "regenerate-btn" });
+      regenerateButton.innerHTML = `
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 16 16"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <title>Regenerate</title>
+          <path
+            fill-rule="evenodd"
+            clip-rule="evenodd"
+            d="m.427 1.927 1.215 1.215a8.002 8.002 0 1 1-1.6 5.685.75.75 0 1 1 1.493-.154 6.5 6.5 0 1 0 1.18-4.458l1.358 1.358A.25.25 0 0 1 3.896 6H.25A.25.25 0 0 1 0 5.75V2.104a.25.25 0 0 1 .427-.177Z"
+            fill="currentColor"></path>
+        </svg>`;
+      regenerateButton.onclick = regenerateLastRequest;
+      bubble.appendChild(regenerateButton);
+    }
+  }
+
+  function updateRegenerateButton() {
+    document
+      .querySelectorAll(".regenerate-btn")
+      .forEach((button) => button.remove());
+
+    const lastMessage = messageList[messageList.length - 1];
+    if (lastMessage && lastMessage.role === "assistant") {
+      const lastBubble = messages.lastChild as HTMLElement;
+      createRegenerateButton(lastBubble);
+    }
+  }
+
   function createBubble(
     attributes: Record<string, any>,
     content: string,
-    isMarkdown = false
+    isMarkdown = false,
+    isError = false
   ) {
     const bubbleContent = isMarkdown ? markdown(content) : content;
     const bubble = h("li", attributes, bubbleContent);
+
     messages.appendChild(bubble);
     addCodeCopyButton(bubble);
+
+    if (isError || attributes.class.includes("assistant")) {
+      createRegenerateButton(bubble);
+    }
+
     bubble.scrollIntoView({ behavior: "smooth" });
   }
 
@@ -82,52 +125,10 @@ import SendIcon from "./icons/Send.astro";
     return storedMessages ? JSON.parse(storedMessages) : [];
   }
 
-  if (typeof window !== "undefined") {
-    const form = document.getElementById("messageForm");
-    const textarea = document.getElementById("message");
-    if (form && textarea) {
-      form.addEventListener("submit", handleSubmit);
-      textarea.addEventListener("keydown", handleKeydown);
-    }
+  async function sendMessage(_messageContent: string) {
+    updateRegenerateButton();
 
-    messageList = loadSessionStorage();
-    if (messageList.length > 0) {
-      header.classList.add("inactive");
-      const thinking = houston.think();
-      setTimeout(() => {
-        thinking.stop();
-        houston.emote("happy");
-      }, 1250);
-    }
-    messageList.forEach((msg) => {
-      if (msg.role === "user") {
-        createBubble({ class: "message", "data-user": "" }, msg.content, true);
-      } else if (msg.role === "assistant") {
-        createBubble({ class: "message" }, msg.content, true);
-      }
-    });
-  }
-
-  async function handleSubmit(event: Event) {
-    event.preventDefault();
-    if (houston.classList.contains("loading")) {
-      return;
-    }
-
-    const textarea = document.getElementById("message") as HTMLTextAreaElement;
-    let message = textarea.value;
-    if (!message.trim()) {
-      return;
-    }
-
-    messageList.push({ role: "user", content: message });
-    updateSessionStorage();
-    createBubble({ class: "message", "data-user": "" }, message, true);
     header.classList.add("inactive");
-
-    textarea.value = "";
-    textarea.blur();
-
     const thinking = houston.think();
 
     setStreamedResponse("");
@@ -139,7 +140,10 @@ import SendIcon from "./icons/Send.astro";
       const date = new Date(timestamp);
       const localDate = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()} ${date.getHours()}:${date.getMinutes()}`;
       const updatedSystemRoleContent = `${systemRole.content} Current time: ${localDate}`;
-      const requestMessageList = [{...systemRole, content: updatedSystemRoleContent }, ...messageList.slice(-7)];
+      const requestMessageList = [
+        { ...systemRole, content: updatedSystemRoleContent },
+        ...messageList.slice(-7),
+      ];
 
       const response = await fetch("/api", {
         method: "POST",
@@ -175,7 +179,7 @@ import SendIcon from "./icons/Send.astro";
         done = readerDone;
       }
 
-      if (streamedResponse) {
+      if (streamedResponse() && !streamedResponse().endsWith("[DONE]")) {
         emote = "happy";
         messageList.push({ role: "assistant", content: streamedResponse() });
         updateSessionStorage();
@@ -184,22 +188,97 @@ import SendIcon from "./icons/Send.astro";
       console.error(err);
       emote = "shocked";
       const error = err as ErrorMessage;
-      createBubble(
-        { class: "sources" },
-        `Opps, Something went wrong! Error: ${error.message}`
-      );
+      const errorMessage = `Opps, Something went wrong! ${error.message}`;
+
+      messageList.push({ role: "assistant", content: errorMessage });
+      updateSessionStorage();
+
+      createBubble({ class: "sources" }, errorMessage, false, true);
     } finally {
       thinking.stop();
       houston.emote(emote);
       setTimeout(() => houston.emote("default"), 1250);
+      updateRegenerateButton();
     }
+  }
+
+  async function regenerateLastRequest() {
+    if (messageList.length > 0) {
+      messageList.pop();
+      updateSessionStorage();
+      messages.removeChild(messages.lastChild);
+    }
+
+    for (let i = messageList.length - 1; i >= 0; i--) {
+      if (messageList[i].role === "user") {
+        await sendMessage(messageList[i].content);
+        break;
+      }
+    }
+
+    updateRegenerateButton();
+  }
+
+  if (typeof window !== "undefined") {
+    const form = document.getElementById("messageForm");
+    const textarea = document.getElementById("message");
+    if (form && textarea) {
+      form.addEventListener("submit", handleSubmit);
+      textarea.addEventListener("keydown", handleKeydown);
+    }
+
+    messageList = loadSessionStorage();
+    if (messageList.length > 0) {
+      header.classList.add("inactive");
+      const thinking = houston.think();
+      setTimeout(() => {
+        thinking.stop();
+        houston.emote("happy");
+      }, 1250);
+    }
+    messageList.forEach((msg) => {
+      if (msg.role === "user") {
+        createBubble(
+          { class: "message", "data-user": "" },
+          msg.content,
+          true,
+          false
+        );
+      } else if (msg.role === "assistant") {
+        createBubble({ class: "message" }, msg.content, true, false);
+      }
+    });
+
+    updateRegenerateButton();
+  }
+
+  async function handleSubmit(event: Event) {
+    event.preventDefault();
+    if (houston.classList.contains("loading")) {
+      return;
+    }
+
+    const textarea = document.getElementById("message") as HTMLTextAreaElement;
+    let message = textarea.value;
+    if (!message.trim()) {
+      return;
+    }
+
+    messageList.push({ role: "user", content: message });
+    updateSessionStorage();
+    createBubble({ class: "message", "data-user": "" }, message, true);
+
+    textarea.value = "";
+    textarea.blur();
+
+    await sendMessage(message);
   }
 
   createEffect(() => {
     const responseMessage = streamedResponse();
     if (responseMessage) {
       if (!isStreaming) {
-        createBubble({ class: "message" }, responseMessage, true);
+        createBubble({ class: "message" }, responseMessage, true, false);
         currentStreamBubble = messages.lastChild as HTMLElement;
         isStreaming = true;
       } else {
@@ -217,7 +296,7 @@ import SendIcon from "./icons/Send.astro";
     }
   });
 
-  function handleKeydown(event) {
+  function handleKeydown(event: Event) {
     const isMobile =
       /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
         navigator.userAgent
