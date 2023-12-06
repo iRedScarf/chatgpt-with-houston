@@ -1,5 +1,5 @@
-export function addCodeCopyButton(bubble) {
-  const codeBlocks = bubble.querySelectorAll("pre");
+export function createCodeCopyButton(bubble) {
+  const codeBlocks = bubble.querySelectorAll("pre > .hljs");
   codeBlocks.forEach((codeBlock) => {
     const copyButton = document.createElement("button");
     copyButton.setAttribute("aria-label", "Copy code");
@@ -25,9 +25,13 @@ export function addCodeCopyButton(bubble) {
           fill="currentColor"
         ></path>
       </svg>`;
+    const preElement = codeBlock.parentNode;
+    if (preElement.style.position !== "relative") {
+      preElement.style.position = "relative";
+    }
     copyButton.style.position = "absolute";
-    copyButton.style.top = codeBlock.offsetTop + 10 + "px";
-    copyButton.style.right = "10px";
+    copyButton.style.top = "0px";
+    copyButton.style.right = "12px";
     copyButton.onclick = function () {
       navigator.clipboard
         .writeText(codeBlock.innerText)
@@ -119,7 +123,6 @@ export function addCodeCopyButton(bubble) {
           }, 1500);
         });
     };
-    codeBlock.parentNode.style.position = "relative";
-    codeBlock.parentNode.appendChild(copyButton);
+    preElement.appendChild(copyButton);
   });
 }

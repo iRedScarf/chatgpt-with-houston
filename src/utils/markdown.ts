@@ -9,6 +9,8 @@ const md = MarkdownIt({
   .use(mdKatex)
   .use(mdHighlight);
 
-export function markdown(input: string): string {
+function markdown(input: string): string {
   return md.render(input);
 }
+
+export default markdown;

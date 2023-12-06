@@ -23,8 +23,10 @@ import SendIcon from "./icons/Send.astro";
 
 <script>
   import { createSignal, createEffect } from "solid-js";
-  import { markdown } from "../utils/markdown";
-  import { addCodeCopyButton } from "../utils/addCodeCopyButton";
+  import h from "../utils/createElement";
+  import markdown from "../utils/markdown";
+  import { createCodeCopyButton } from "../utils/createCodeCopyButton";
+  import { createRegenerateButton } from "../utils/createRegenerateButton";
   import type { ChatMessage, ErrorMessage } from "../types";
 
   const header = document.querySelector("header")!;
@@ -43,60 +45,6 @@ import SendIcon from "./icons/Send.astro";
   let messageList: ChatMessage[] = [];
   let emote: string = "default";
 
-  const h = (
-    tag: string,
-    props: Record<string, any> = {},
-    ...children: any[]
-  ) => {
-    const node = document.createElement(tag);
-    for (const [key, value] of Object.entries(props)) {
-      node.setAttribute(key, value);
-    }
-    for (const child of children) {
-      if (child instanceof Node) {
-        node.appendChild(child);
-      } else if (child || child === 0) {
-        node.innerHTML = child;
-      }
-    }
-    return node;
-  };
-
-  function createRegenerateButton(bubble) {
-    if (!bubble.querySelector(".regenerate-btn")) {
-      const regenerateButton = h("button", { class: "regenerate-btn" });
-      regenerateButton.innerHTML = `
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 16 16"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <title>Regenerate</title>
-          <path
-            fill-rule="evenodd"
-            clip-rule="evenodd"
-            d="m.427 1.927 1.215 1.215a8.002 8.002 0 1 1-1.6 5.685.75.75 0 1 1 1.493-.154 6.5 6.5 0 1 0 1.18-4.458l1.358 1.358A.25.25 0 0 1 3.896 6H.25A.25.25 0 0 1 0 5.75V2.104a.25.25 0 0 1 .427-.177Z"
-            fill="currentColor"></path>
-        </svg>`;
-      regenerateButton.onclick = regenerateLastRequest;
-      bubble.appendChild(regenerateButton);
-    }
-  }
-
-  function updateRegenerateButton() {
-    document
-      .querySelectorAll(".regenerate-btn")
-      .forEach((button) => button.remove());
-
-    const lastMessage = messageList[messageList.length - 1];
-    if (lastMessage && lastMessage.role === "assistant") {
-      const lastBubble = messages.lastChild as HTMLElement;
-      createRegenerateButton(lastBubble);
-    }
-  }
-
   function createBubble(
     attributes: Record<string, any>,
     content: string,
@@ -107,7 +55,7 @@ import SendIcon from "./icons/Send.astro";
     const bubble = h("li", attributes, bubbleContent);
 
     messages.appendChild(bubble);
-    addCodeCopyButton(bubble);
+    createCodeCopyButton(bubble);
 
     if (isError || attributes.class.includes("assistant")) {
       createRegenerateButton(bubble);
@@ -123,6 +71,72 @@ import SendIcon from "./icons/Send.astro";
   function loadSessionStorage() {
     const storedMessages = sessionStorage.getItem("messageList");
     return storedMessages ? JSON.parse(storedMessages) : [];
+  }
+
+  async function regenerateLastRequest(onRegenDone) {
+    if (messageList.length > 0) {
+      messageList.pop();
+      updateSessionStorage();
+      messages.removeChild(messages.lastChild);
+    }
+
+    for (let i = messageList.length - 1; i >= 0; i--) {
+      if (messageList[i].role === "user") {
+        await sendMessage(messageList[i].content);
+        break;
+      }
+    }
+
+    if (onRegenDone) {
+      onRegenDone();
+    }
+  }
+
+  function updateRegenerateButton() {
+    document
+      .querySelectorAll(".regenerate-btn")
+      .forEach((button) => button.remove());
+
+    const lastMessage = messageList[messageList.length - 1];
+    if (lastMessage && lastMessage.role === "assistant") {
+      const lastBubble = messages.lastChild as HTMLElement;
+      const regenerateButton = createRegenerateButton();
+      regenerateButton.onclick = () => regenerateLastRequest(updateRegenerateButton);
+      lastBubble.appendChild(regenerateButton);
+    }
+  }
+
+  if (typeof window !== "undefined") {
+    const form = document.getElementById("messageForm");
+    const textarea = document.getElementById("message");
+    if (form && textarea) {
+      form.addEventListener("submit", handleSubmit);
+      textarea.addEventListener("keydown", handleKeydown);
+    }
+
+    messageList = loadSessionStorage();
+    if (messageList.length > 0) {
+      header.classList.add("inactive");
+      const thinking = houston.think();
+      setTimeout(() => {
+        thinking.stop();
+        houston.emote("happy");
+      }, 1250);
+    }
+    messageList.forEach((msg) => {
+      if (msg.role === "user") {
+        createBubble(
+          { class: "message", "data-user": "" },
+          msg.content,
+          true,
+          false
+        );
+      } else if (msg.role === "assistant") {
+        createBubble({ class: "message" }, msg.content, true, false);
+      }
+    });
+
+    updateRegenerateButton();
   }
 
   async function sendMessage(_messageContent: string) {
@@ -158,7 +172,7 @@ import SendIcon from "./icons/Send.astro";
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(`HTTP error: ${response.status}`);
       }
 
       const data = response.body;
@@ -188,7 +202,7 @@ import SendIcon from "./icons/Send.astro";
       console.error(err);
       emote = "shocked";
       const error = err as ErrorMessage;
-      const errorMessage = `Opps, Something went wrong! ${error.message}`;
+      const errorMessage = `Opps, something went wrong! ${error.message}`;
 
       messageList.push({ role: "assistant", content: errorMessage });
       updateSessionStorage();
@@ -200,56 +214,6 @@ import SendIcon from "./icons/Send.astro";
       setTimeout(() => houston.emote("default"), 1250);
       updateRegenerateButton();
     }
-  }
-
-  async function regenerateLastRequest() {
-    if (messageList.length > 0) {
-      messageList.pop();
-      updateSessionStorage();
-      messages.removeChild(messages.lastChild);
-    }
-
-    for (let i = messageList.length - 1; i >= 0; i--) {
-      if (messageList[i].role === "user") {
-        await sendMessage(messageList[i].content);
-        break;
-      }
-    }
-
-    updateRegenerateButton();
-  }
-
-  if (typeof window !== "undefined") {
-    const form = document.getElementById("messageForm");
-    const textarea = document.getElementById("message");
-    if (form && textarea) {
-      form.addEventListener("submit", handleSubmit);
-      textarea.addEventListener("keydown", handleKeydown);
-    }
-
-    messageList = loadSessionStorage();
-    if (messageList.length > 0) {
-      header.classList.add("inactive");
-      const thinking = houston.think();
-      setTimeout(() => {
-        thinking.stop();
-        houston.emote("happy");
-      }, 1250);
-    }
-    messageList.forEach((msg) => {
-      if (msg.role === "user") {
-        createBubble(
-          { class: "message", "data-user": "" },
-          msg.content,
-          true,
-          false
-        );
-      } else if (msg.role === "assistant") {
-        createBubble({ class: "message" }, msg.content, true, false);
-      }
-    });
-
-    updateRegenerateButton();
   }
 
   async function handleSubmit(event: Event) {
@@ -290,7 +254,7 @@ import SendIcon from "./icons/Send.astro";
     if (responseMessage.endsWith("[DONE]")) {
       isStreaming = false;
     }
-    addCodeCopyButton(currentStreamBubble);
+    createCodeCopyButton(currentStreamBubble);
     if (currentStreamBubble) {
       currentStreamBubble.scrollIntoView({ behavior: "instant" });
     }
