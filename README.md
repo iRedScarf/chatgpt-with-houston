@@ -13,6 +13,8 @@ This repo is inspired by [anse-app/chatgpt-demo](https://github.com/anse-app/cha
 
 Currently, the project does not support custom features such as `System Role` and `Temperature`, but plans to implement these in the future.
 
+**Code in this repo is messy! Our goal is to clean this up and share it as an Astro template example.**
+
 ## How it works
 
 To be continued...
