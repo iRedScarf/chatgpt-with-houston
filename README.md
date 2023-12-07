@@ -1,9 +1,9 @@
 ![houston social image](public/social.jpg)
 # ChatGPT with HoustonAI
 
-**ChatGPT with HoustonAI** is a minimal web UI for ChatGPT with HoustonAI interface.
+This is a minimal web UI for OpenAI API, featuring the HoustonAI interface. Powered by Astro and OpenAI API.
 
-Powered by Astro and OpenAI API.
+You can deploy a ChatGPT chat page with the HoustonAI interface using your OpenAI API Key.
 
 **Note:** This project is for personal, **NON-COMMERCIAL** purposes and is **NOT an OFFICIAL project of the Astro team.**
 
@@ -50,6 +50,8 @@ You can control the website through environment variables.
 - [x] Support continuous chat.
 
 > HoustonAI will now remember the latest 3 complete conversation histories.
+
+- [ ] Clear button for clear chat history.
 
 - [ ] Implement custom `System Role` and `Temperature` functionality.
 

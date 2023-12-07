@@ -65,7 +65,11 @@ import SendIcon from "./icons/Send.astro";
   }
 
   function updateSessionStorage() {
-    sessionStorage.setItem("messageList", JSON.stringify(messageList));
+    try {
+      sessionStorage.setItem("messageList", JSON.stringify(messageList));
+    } catch (err) {
+      console.error("Error updating sessionStorage: ", err);
+    }
   }
 
   function loadSessionStorage() {
@@ -76,13 +80,12 @@ import SendIcon from "./icons/Send.astro";
   async function regenerateLastRequest(onRegenDone) {
     if (messageList.length > 0) {
       messageList.pop();
-      updateSessionStorage();
       messages.removeChild(messages.lastChild);
     }
 
     for (let i = messageList.length - 1; i >= 0; i--) {
       if (messageList[i].role === "user") {
-        await sendMessage(messageList[i].content);
+        await handleRequest(messageList[i].content);
         break;
       }
     }
@@ -101,7 +104,8 @@ import SendIcon from "./icons/Send.astro";
     if (lastMessage && lastMessage.role === "assistant") {
       const lastBubble = messages.lastChild as HTMLElement;
       const regenerateButton = createRegenerateButton();
-      regenerateButton.onclick = () => regenerateLastRequest(updateRegenerateButton);
+      regenerateButton.onclick = () =>
+        regenerateLastRequest(updateRegenerateButton);
       lastBubble.appendChild(regenerateButton);
     }
   }
@@ -139,7 +143,7 @@ import SendIcon from "./icons/Send.astro";
     updateRegenerateButton();
   }
 
-  async function sendMessage(_messageContent: string) {
+  async function handleRequest(_messageContent: string) {
     updateRegenerateButton();
 
     header.classList.add("inactive");
@@ -152,7 +156,15 @@ import SendIcon from "./icons/Send.astro";
     try {
       const timestamp = Date.now();
       const date = new Date(timestamp);
-      const localDate = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()} ${date.getHours()}:${date.getMinutes()}`;
+      const localDate = new Intl.DateTimeFormat(undefined, {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false,
+      }).format(date);
       const updatedSystemRoleContent = `${systemRole.content} Current time: ${localDate}`;
       const requestMessageList = [
         { ...systemRole, content: updatedSystemRoleContent },
@@ -196,7 +208,6 @@ import SendIcon from "./icons/Send.astro";
       if (streamedResponse() && !streamedResponse().endsWith("[DONE]")) {
         emote = "happy";
         messageList.push({ role: "assistant", content: streamedResponse() });
-        updateSessionStorage();
       }
     } catch (err) {
       console.error(err);
@@ -205,8 +216,6 @@ import SendIcon from "./icons/Send.astro";
       const errorMessage = `Opps, something went wrong! ${error.message}`;
 
       messageList.push({ role: "assistant", content: errorMessage });
-      updateSessionStorage();
-
       createBubble({ class: "sources" }, errorMessage, false, true);
     } finally {
       thinking.stop();
@@ -229,13 +238,12 @@ import SendIcon from "./icons/Send.astro";
     }
 
     messageList.push({ role: "user", content: message });
-    updateSessionStorage();
     createBubble({ class: "message", "data-user": "" }, message, true);
 
     textarea.value = "";
     textarea.blur();
 
-    await sendMessage(message);
+    await handleRequest(message);
   }
 
   createEffect(() => {
@@ -254,9 +262,9 @@ import SendIcon from "./icons/Send.astro";
     if (responseMessage.endsWith("[DONE]")) {
       isStreaming = false;
     }
-    createCodeCopyButton(currentStreamBubble);
     if (currentStreamBubble) {
       currentStreamBubble.scrollIntoView({ behavior: "instant" });
+      createCodeCopyButton(currentStreamBubble);
     }
   });
 
@@ -282,4 +290,6 @@ import SendIcon from "./icons/Send.astro";
       }
     }
   }
+
+  window.addEventListener("beforeunload", updateSessionStorage);
 </script>

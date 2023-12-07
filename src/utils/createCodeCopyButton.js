@@ -1,4 +1,9 @@
 export function createCodeCopyButton(bubble) {
+  if (!bubble || !bubble.querySelectorAll) {
+    console.error("Invalid bubble element passed to createCodeCopyButton");
+    return;
+  }
+  
   const codeBlocks = bubble.querySelectorAll("pre > .hljs");
   codeBlocks.forEach((codeBlock) => {
     const copyButton = document.createElement("button");
