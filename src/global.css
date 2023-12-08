@@ -84,7 +84,6 @@ header.inactive .intro {
   justify-content: space-between;
   width: 100%;
   gap: 8px;
-  justify-content: space-between;
 }
 .intro .intro-subtitle {
   margin: 0.25rem 0 1rem 0;

@@ -20,36 +20,44 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-import { fetch } from 'undici'
-import { generatePayload, parseOpenAIStream } from '../utils/generate'
-import type { APIRoute } from 'astro'
+import { fetch } from "undici";
+import { generatePayload, parseOpenAIStream } from "../utils/generate";
+import type { APIRoute } from "astro";
 
-const apiKey = import.meta.env.OPENAI_API_KEY
-const apiEndpoint = ((import.meta.env.OPENAI_API_ENDPOINT) || 'https://api.openai.com/v1/chat/completions').trim().replace(/\/$/, '')
-const temperature = parseFloat(import.meta.env.OPENAI_TEMPERATURE) || 0.7;
+const apiKey = import.meta.env.OPENAI_API_KEY;
+const apiEndpoint = (import.meta.env.OPENAI_API_ENDPOINT || "https://api.openai.com/v1/chat/completions").trim().replace(/\/$/, "");
 
-export const POST: APIRoute = async(context) => {
-  const body = await context.request.json()
-  const { messages, time, temperature } = body
-  if (!messages) {
-    return new Response(JSON.stringify({
-      error: {
-        message: 'No input text.',
-      },
-    }), { status: 400 })
-  }
+export const POST: APIRoute = async (context) => {
+  try {
+    const body = await context.request.json();
+    const { messages, temperature } = body;
+    if (!messages) {
+      return new Response(
+        JSON.stringify({
+          error: { message: "No input text." },
+        }),
+        { status: 400 }
+      );
+    }
 
-  const initOptions = generatePayload(apiKey, messages, temperature)
+    const initOptions = generatePayload(apiKey, messages, temperature);
+    const response = await fetch(apiEndpoint, initOptions);
 
-  const response = await fetch(apiEndpoint, initOptions).catch((err: Error) => {
+    if (!response.ok) {
+      throw new Error(`HTTP error: ${response.status}`);
+    }
+
+    return parseOpenAIStream(response) as Response;
+  } catch (err: any) {
     console.error("Error processing request:", err);
-    return new Response(JSON.stringify({
-      error: {
-        code: err.name,
-        message: err.message,
-      },
-    }), { status: 500 })
-  }) as Response
-
-  return parseOpenAIStream(response) as Response
-}
+    return new Response(
+      JSON.stringify({
+        error: {
+          code: err.name || "UnknownError",
+          message: err.message || "An unknown error occurred",
+        },
+      }),
+      { status: 500 }
+    );
+  }
+};

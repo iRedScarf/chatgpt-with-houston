@@ -33,7 +33,7 @@ import SendIcon from "./icons/Send.astro";
   const houston = document.querySelector("hey-houston")!;
   const messages = document.querySelector(".chat") as HTMLDivElement;
   const systemRoleContent =
-    "You are HoustonAI, based on OpenAI API. You are a very articulate, appropriate, and helpful AI, always answer all questions from everyone without reservation.";
+    "You are HoustonAI. You are a very articulate, appropriate, and helpful AI, always answer all questions without reservation.";
   const systemRole = {
     role: "system",
     content: systemRoleContent,
@@ -129,12 +129,7 @@ import SendIcon from "./icons/Send.astro";
     }
     messageList.forEach((msg) => {
       if (msg.role === "user") {
-        createBubble(
-          { class: "message", "data-user": "" },
-          msg.content,
-          true,
-          false
-        );
+        createBubble({ class: "message", "data-user": "" }, msg.content, true, false);
       } else if (msg.role === "assistant") {
         createBubble({ class: "message" }, msg.content, true, false);
       }
@@ -149,7 +144,10 @@ import SendIcon from "./icons/Send.astro";
     header.classList.add("inactive");
     const thinking = houston.think();
 
-    setStreamedResponse("");
+    if (streamedResponse()) {
+        setStreamedResponse("");
+    }
+    
     isStreaming = false;
     currentStreamBubble = null;
 
@@ -157,13 +155,8 @@ import SendIcon from "./icons/Send.astro";
       const timestamp = Date.now();
       const date = new Date(timestamp);
       const localDate = new Intl.DateTimeFormat(undefined, {
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: false,
+        year: "numeric", month: "2-digit", day: "2-digit", weekday: "long",
+        hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
       }).format(date);
       const updatedSystemRoleContent = `${systemRole.content} Current time: ${localDate}`;
       const requestMessageList = [
@@ -209,6 +202,7 @@ import SendIcon from "./icons/Send.astro";
         emote = "happy";
         messageList.push({ role: "assistant", content: streamedResponse() });
       }
+      setStreamedResponse("");
     } catch (err) {
       console.error(err);
       emote = "shocked";
