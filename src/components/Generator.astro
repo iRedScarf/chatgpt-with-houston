@@ -44,6 +44,11 @@ import SendIcon from "./icons/Send.astro";
   let currentStreamBubble: HTMLElement | null;
   let messageList: ChatMessage[] = [];
   let emote: string = "default";
+  let sessionId = sessionStorage.getItem('sessionId');
+  if (!sessionId) {
+    sessionId = crypto.randomUUID();
+    sessionStorage.setItem('sessionId', sessionId);
+  }
 
   function createBubble(
     attributes: Record<string, any>,
@@ -173,6 +178,7 @@ import SendIcon from "./icons/Send.astro";
           messages: requestMessageList,
           time: timestamp,
           temperature: 0.7,
+          session_id: sessionId,
         }),
       });
 

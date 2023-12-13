@@ -29,7 +29,8 @@ export const model = import.meta.env.OPENAI_API_MODEL || "gpt-3.5-turbo";
 export const generatePayload = (
   apiKey: string,
   messages: ChatMessage[],
-  temperature: number
+  temperature: number,
+  sessionId: string
 ): RequestInit & { dispatcher?: any } => ({
   headers: {
     "Content-Type": "application/json",
@@ -40,6 +41,7 @@ export const generatePayload = (
     model,
     messages,
     temperature,
+    session_id: sessionId,
     stream: true,
   }),
 });
@@ -47,6 +49,8 @@ export const generatePayload = (
 export const parseOpenAIStream = (rawResponse: Response) => {
   const encoder = new TextEncoder();
   const decoder = new TextDecoder();
+  let buffer = "";
+
   if (!rawResponse.ok) {
     return new Response(rawResponse.body, {
       status: rawResponse.status,
@@ -57,12 +61,15 @@ export const parseOpenAIStream = (rawResponse: Response) => {
   const stream = new ReadableStream({
     async start(controller) {
       const streamParser = (event: ParsedEvent | ReconnectInterval) => {
+
         if (event.type === "event") {
-          const data = event.data;
-          if (data === "[DONE]") {
+          buffer += event.data;
+
+          if (buffer.endsWith("[DONE]")) {
             controller.close();
             return;
           }
+
           try {
             // response = {
             //   id: 'chatcmpl-6pULPSegWhFgi0XQ1DtgA3zTa1WR6',
@@ -73,12 +80,15 @@ export const parseOpenAIStream = (rawResponse: Response) => {
             //     { delta: { content: 'hi' }, index: 0, finish_reason: null }
             //   ],
             // }
-            const json = JSON.parse(data);
-            const text = json.choices[0].delta?.content || "";
-            const queue = encoder.encode(text);
-            controller.enqueue(queue);
+            if (isCompleteJSON(buffer)) {
+              const json = JSON.parse(buffer);
+              const text = json.choices[0].delta?.content || "";
+              const queue = encoder.encode(text);
+              controller.enqueue(queue);
+              buffer = "";
+            }
           } catch (e) {
-            controller.error(e);
+            console.error("Error parsing JSON:", e);
           }
         }
       };
@@ -91,3 +101,12 @@ export const parseOpenAIStream = (rawResponse: Response) => {
 
   return new Response(stream);
 };
+
+function isCompleteJSON(str: string): boolean {
+  try {
+    JSON.parse(str);
+    return true;
+  } catch {
+    return false;
+  }
+}
