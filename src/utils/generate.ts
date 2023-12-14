@@ -49,8 +49,7 @@ export const generatePayload = (
 export const parseOpenAIStream = (rawResponse: Response) => {
   const encoder = new TextEncoder();
   const decoder = new TextDecoder();
-  let buffer = "";
-
+  
   if (!rawResponse.ok) {
     return new Response(rawResponse.body, {
       status: rawResponse.status,
@@ -63,9 +62,8 @@ export const parseOpenAIStream = (rawResponse: Response) => {
       const streamParser = (event: ParsedEvent | ReconnectInterval) => {
 
         if (event.type === "event") {
-          buffer += event.data;
-
-          if (buffer.endsWith("[DONE]")) {
+          const data = event.data;
+          if (data === "[DONE]") {
             controller.close();
             return;
           }
@@ -80,15 +78,12 @@ export const parseOpenAIStream = (rawResponse: Response) => {
             //     { delta: { content: 'hi' }, index: 0, finish_reason: null }
             //   ],
             // }
-            if (isCompleteJSON(buffer)) {
-              const json = JSON.parse(buffer);
-              const text = json.choices[0].delta?.content || "";
-              const queue = encoder.encode(text);
-              controller.enqueue(queue);
-              buffer = "";
-            }
+            const json = JSON.parse(data);
+            const text = json.choices[0].delta?.content || "";
+            const queue = encoder.encode(text);
+            controller.enqueue(queue);
           } catch (e) {
-            console.error("Error parsing JSON:", e);
+            controller.error(e);
           }
         }
       };
@@ -101,12 +96,3 @@ export const parseOpenAIStream = (rawResponse: Response) => {
 
   return new Response(stream);
 };
-
-function isCompleteJSON(str: string): boolean {
-  try {
-    JSON.parse(str);
-    return true;
-  } catch {
-    return false;
-  }
-}
