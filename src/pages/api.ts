@@ -30,7 +30,7 @@ const apiEndpoint = (import.meta.env.OPENAI_API_ENDPOINT || "https://api.openai.
 export const POST: APIRoute = async (context) => {
   try {
     const body = await context.request.json();
-    const { messages, temperature, user_id } = body;
+    const { messages, temperature, sessionId } = body;
     if (!messages) {
       return new Response(
         JSON.stringify({
@@ -40,7 +40,7 @@ export const POST: APIRoute = async (context) => {
       );
     }
 
-    const initOptions = generatePayload(apiKey, messages, temperature, user_id);
+    const initOptions = generatePayload(apiKey, messages, temperature, sessionId);
     const response = await fetch(apiEndpoint, initOptions);
 
     if (!response.ok) {
