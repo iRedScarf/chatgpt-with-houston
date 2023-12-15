@@ -30,7 +30,7 @@ export const generatePayload = (
   apiKey: string,
   messages: ChatMessage[],
   temperature: number,
-  sessionId: string
+  userId: string
 ): RequestInit & { dispatcher?: any } => ({
   headers: {
     "Content-Type": "application/json",
@@ -41,7 +41,7 @@ export const generatePayload = (
     model,
     messages,
     temperature,
-    session_id: sessionId,
+    user: userId,
     stream: true,
   }),
 });

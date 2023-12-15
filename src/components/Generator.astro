@@ -44,10 +44,10 @@ import SendIcon from "./icons/Send.astro";
   let currentStreamBubble: HTMLElement | null;
   let messageList: ChatMessage[] = [];
   let emote: string = "default";
-  let sessionId = sessionStorage.getItem('sessionId');
-  if (!sessionId) {
-    sessionId = crypto.randomUUID();
-    sessionStorage.setItem('sessionId', sessionId);
+  let userId = sessionStorage.getItem('userId');
+  if (!userId) {
+    userId = crypto.randomUUID();
+    sessionStorage.setItem('userId', userId);
   }
 
   function createBubble(
@@ -82,7 +82,7 @@ import SendIcon from "./icons/Send.astro";
     return storedMessages ? JSON.parse(storedMessages) : [];
   }
 
-  async function regenerateLastRequest(onRegenDone) {
+  async function regenerateLastRequest(onRegenDone: { (): void; (): void; }) {
     if (messageList.length > 0) {
       messageList.pop();
       messages.removeChild(messages.lastChild);
@@ -178,7 +178,7 @@ import SendIcon from "./icons/Send.astro";
           messages: requestMessageList,
           time: timestamp,
           temperature: 0.7,
-          session_id: sessionId,
+          user_id: userId,
         }),
       });
 
