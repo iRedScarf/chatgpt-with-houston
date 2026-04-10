@@ -2,6 +2,7 @@
 dist
 .netlify
 .vercel
+.astro
 
 # dependencies
 node_modules

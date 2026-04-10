@@ -1,11 +1,6 @@
 {
   "buildCommand": "OUTPUT=vercel astro build",
   "regions": ["sin1"],
-  "functions": {
-    "api/**": {
-      "maxDuration": 60
-    }
-  },
   "headers": [
     {
       "source": "/api",
