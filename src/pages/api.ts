@@ -20,12 +20,16 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-import { fetch } from "undici";
 import { generatePayload, parseOpenAIStream } from "../utils/generate";
 import type { APIRoute } from "astro";
 
 const apiKey = import.meta.env.OPENAI_API_KEY;
-const apiEndpoint = (import.meta.env.OPENAI_API_ENDPOINT || "https://api.openai.com/v1/chat/completions").trim().replace(/\/$/, "");
+const apiEndpoint = (
+  import.meta.env.OPENAI_API_ENDPOINT ||
+  "https://api.openai.com/v1/chat/completions"
+)
+  .trim()
+  .replace(/\/$/, "");
 
 export const POST: APIRoute = async (context) => {
   try {
@@ -41,23 +45,47 @@ export const POST: APIRoute = async (context) => {
     }
 
     const initOptions = generatePayload(apiKey, messages, temperature, sessionId);
-    const response = await fetch(apiEndpoint, initOptions);
 
-    if (!response.ok) {
-      throw new Error(`HTTP error: ${response.status}`);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 90_000);
+
+    let response: Response;
+    try {
+      response = await fetch(apiEndpoint, {
+        ...initOptions,
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeout);
     }
 
-    return parseOpenAIStream(response) as Response;
+    if (!response.ok) {
+      const errorBody = await response.text().catch(() => "");
+      throw new Error(
+        `OpenAI API error ${response.status}: ${errorBody || response.statusText}`
+      );
+    }
+
+    return parseOpenAIStream(response);
   } catch (err: any) {
     console.error("Error processing request:", err);
+
+    const isTimeout =
+      err.name === "AbortError" || err.message?.includes("abort");
+
     return new Response(
       JSON.stringify({
         error: {
-          code: err.name || "UnknownError",
-          message: err.message || "An unknown error occurred",
+          code: isTimeout ? "Timeout" : err.name || "UnknownError",
+          message: isTimeout
+            ? "Request timed out. Please try again."
+            : err.message || "An unknown error occurred",
         },
       }),
-      { status: 500 }
+      {
+        status: isTimeout ? 504 : 500,
+        headers: { "Content-Type": "application/json" },
+      }
     );
   }
 };

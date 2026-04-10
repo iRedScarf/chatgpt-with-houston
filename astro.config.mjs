@@ -5,7 +5,7 @@ import solidJs from '@astrojs/solid-js'
 export default defineConfig({
   // site: 'https://houston.ailoha.com/',
   output: "server",
-  adapter: vercel({ analytics: true }),
+  adapter: vercel({ webAnalytics: { enabled: true } }),
   integrations: [
     solidJs(),
   ],

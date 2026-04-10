@@ -20,10 +20,6 @@
     "markdown-it": "^13.0.2",
     "markdown-it-highlightjs": "^4.0.1",
     "markdown-it-katex": "^2.0.3",
-    "openai": "^4.19.0",
-    "smartypants": "^0.2.2",
-    "solid-js": "^1.8.5",
-    "solidjs-use": "^2.3.0",
-    "undici": "^5.27.2"
+    "solid-js": "^1.8.5"
   }
 }

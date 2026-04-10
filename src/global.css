@@ -113,7 +113,8 @@ footer {
   position: relative;
 }
 
-footer button {
+footer button[type="submit"],
+footer .stop-btn {
   position: absolute;
   right: 19px;
   top: 19px;
@@ -125,6 +126,10 @@ footer button {
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
+}
+footer .stop-btn {
+  background: linear-gradient(83.21deg, #ff3245 0%, #ee52bc 100%);
 }
 footer svg {
   margin-right: -0.25rem;
