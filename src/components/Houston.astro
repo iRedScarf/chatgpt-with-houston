@@ -69,9 +69,30 @@ const {
   const lerp = (start: number, end: number, amt: number) =>
     (1 - amt) * start + amt * end;
 
+  type ConnectionState =
+    | "idle"
+    | "connecting"
+    | "streaming"
+    | "retrying"
+    | "error"
+    | "interrupted"
+    | "done";
+
+  const connectionEmotes: Record<ConnectionState, keyof typeof poses> = {
+    idle: "default",
+    connecting: "default",
+    streaming: "default",
+    retrying: "sad",
+    error: "shocked",
+    interrupted: "disappointed",
+    done: "happy",
+  };
+
   class HeyHouston extends HTMLElement {
     private _rect!: DOMRect;
     private _handle?: number;
+    private _talkHandle?: number;
+    private _connectionState: ConnectionState = "idle";
 
     constructor() {
       super();
@@ -128,6 +149,10 @@ const {
       return this.querySelector(".eye:last-child")! as HTMLElement;
     }
 
+    get connectionState() {
+      return this._connectionState;
+    }
+
     attributeChangedCallback(name: string, oldValue: string, newValue: string) {
       if (name === "shapes") {
         this.updateShapes(newValue);
@@ -140,6 +165,7 @@ const {
 
     reset() {
       if (this._handle) clearTimeout(this._handle);
+      this.stopTalk();
       this.updateShapes(
         poses[(this.getAttribute("pose") as keyof typeof poses) ?? "default"]
       );
@@ -160,7 +186,15 @@ const {
       }, randBetween(1000, 1750));
     }
 
+    stopTalk() {
+      if (this._talkHandle) {
+        clearTimeout(this._talkHandle);
+        this._talkHandle = undefined;
+      }
+    }
+
     talk() {
+      this.stopTalk();
       const shapes = poses.default;
       this.updateShapes(shapes);
 
@@ -176,13 +210,16 @@ const {
           i = 0;
         }
         this.mouth.dataset.shape = mouths[randBetween(0, mouths.length - 1)];
-        this._handle = setTimeout(() => loop(), randBetween(100, 300));
+        this._talkHandle = setTimeout(() => loop(), randBetween(100, 300));
       };
 
       loop();
 
       return {
-        stop: () => this.reset(),
+        stop: () => {
+          this.stopTalk();
+          this.reset();
+        },
       };
     }
 
@@ -194,6 +231,68 @@ const {
           this.classList.remove("loading");
         },
       };
+    }
+
+    setConnectionState(state: ConnectionState) {
+      const prev = this._connectionState;
+      this._connectionState = state;
+
+      // Remove previous state classes
+      this.classList.remove("state-retrying", "state-error", "state-streaming");
+      this.dataset.connectionState = state;
+
+      // Clean up any ongoing animations from previous state
+      if (prev === "streaming") {
+        this.stopTalk();
+      }
+      if (prev === "connecting" || prev === "retrying") {
+        this.classList.remove("loading");
+      }
+
+      switch (state) {
+        case "idle":
+          this.classList.remove("active", "loading");
+          this.reset();
+          break;
+
+        case "connecting":
+          this.classList.add("active", "loading");
+          break;
+
+        case "streaming":
+          this.classList.remove("loading");
+          this.classList.add("state-streaming");
+          this.talk();
+          break;
+
+        case "retrying":
+          this.classList.add("active", "loading", "state-retrying");
+          this.updateShapes(poses.sad);
+          break;
+
+        case "error":
+          this.classList.remove("active", "loading");
+          this.classList.add("state-error");
+          this.updateShapes(poses.shocked);
+          break;
+
+        case "interrupted":
+          this.classList.remove("active", "loading");
+          this.updateShapes(poses.disappointed);
+          break;
+
+        case "done":
+          this.classList.remove("active", "loading");
+          this.stopTalk();
+          this.updateShapes(poses.happy);
+          if (this._handle) clearTimeout(this._handle);
+          this._handle = setTimeout(() => {
+            this._connectionState = "idle";
+            this.dataset.connectionState = "idle";
+            this.reset();
+          }, 1500);
+          break;
+      }
     }
   }
 
@@ -1147,5 +1246,55 @@ const {
   }
   [data-shape$="bottom"] {
     align-self: flex-end;
+  }
+  hey-houston.state-retrying::before {
+    animation: floating 6s 0.3s ease-in-out infinite,
+      pulse-warning 1.5s ease-in-out infinite;
+  }
+  hey-houston.state-retrying .container {
+    animation: floating 6s cubic-bezier(0.76, 0, 0.24, 1) infinite,
+      pulse-warning 1.5s ease-in-out infinite;
+  }
+  hey-houston.state-error::before {
+    --border-color: conic-gradient(
+      from var(--deg, 0deg) at 50% 50%,
+      #ff3245 0deg,
+      #ee52bc 102deg,
+      #ff3245 360deg
+    );
+  }
+  hey-houston.state-error .container {
+    background: conic-gradient(
+      from var(--deg, 0deg) at 50% 50%,
+      #ff3245 0deg,
+      #ee52bc 102deg,
+      #ff3245 360deg
+    );
+  }
+  hey-houston.state-streaming::before {
+    --border-color: conic-gradient(
+      from var(--deg, 0deg) at 50% 50%,
+      #4af2c8 0deg,
+      #3245ff 102deg,
+      #bc52ee 200deg,
+      #4af2c8 360deg
+    );
+  }
+  hey-houston.state-streaming .container {
+    background: conic-gradient(
+      from var(--deg, 0deg) at 50% 50%,
+      #4af2c8 0deg,
+      #3245ff 102deg,
+      #bc52ee 200deg,
+      #4af2c8 360deg
+    );
+  }
+  @keyframes pulse-warning {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
   }
 </style>

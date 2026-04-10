@@ -1,5 +1,6 @@
 ---
 import SendIcon from "./icons/Send.astro";
+import StopIcon from "./icons/Stop.astro";
 ---
 
 <footer class="container">
@@ -11,8 +12,11 @@ import SendIcon from "./icons/Send.astro";
         oninput="this.parentNode.dataset.value = this.value"
         placeholder="Enter something..."
         cols="30"></textarea>
-      <button type="submit">
+      <button type="submit" id="submitBtn">
         <SendIcon />
+      </button>
+      <button type="button" id="stopBtn" class="stop-btn" style="display:none;">
+        <StopIcon />
       </button>
     </div>
   </form>
@@ -29,9 +33,16 @@ import SendIcon from "./icons/Send.astro";
   import { createRegenerateButton } from "../utils/createRegenerateButton";
   import type { ChatMessage, ErrorMessage } from "../types";
 
+  const MAX_RETRIES = 2;
+  const RETRY_DELAYS = [1500, 3000];
+  const STREAM_TIMEOUT_MS = 30_000;
+
   const header = document.querySelector("header")!;
-  const houston = document.querySelector("hey-houston")!;
-  const messages = document.querySelector(".chat") as HTMLDivElement;
+  const houston = document.querySelector("hey-houston")! as any;
+  const messagesEl = document.querySelector(".chat") as HTMLDivElement;
+  const submitBtn = document.getElementById("submitBtn") as HTMLButtonElement;
+  const stopBtn = document.getElementById("stopBtn") as HTMLButtonElement;
+
   const systemRoleContent =
     "You are HoustonAI. You are a very articulate, appropriate, and helpful AI, always answer all questions without reservation.";
   const systemRole = {
@@ -40,14 +51,21 @@ import SendIcon from "./icons/Send.astro";
   };
 
   let [streamedResponse, setStreamedResponse] = createSignal("");
+  let currentStreamBubble: HTMLElement | null = null;
   let isStreaming = false;
-  let currentStreamBubble: HTMLElement | null;
   let messageList: ChatMessage[] = [];
-  let emote: string = "default";
-  let sessionId = sessionStorage.getItem('sessionId');
+  let abortController: AbortController | null = null;
+  let streamTimeoutHandle: number | undefined;
+
+  let sessionId = sessionStorage.getItem("sessionId");
   if (!sessionId) {
     sessionId = crypto.randomUUID();
-    sessionStorage.setItem('sessionId', sessionId);
+    sessionStorage.setItem("sessionId", sessionId);
+  }
+
+  function setSubmitVisible(visible: boolean) {
+    submitBtn.style.display = visible ? "" : "none";
+    stopBtn.style.display = visible ? "none" : "";
   }
 
   function createBubble(
@@ -59,7 +77,7 @@ import SendIcon from "./icons/Send.astro";
     const bubbleContent = isMarkdown ? markdown(content) : content;
     const bubble = h("li", attributes, bubbleContent);
 
-    messages.appendChild(bubble);
+    messagesEl.appendChild(bubble);
     createCodeCopyButton(bubble);
 
     if (isError || attributes.class.includes("assistant")) {
@@ -77,15 +95,40 @@ import SendIcon from "./icons/Send.astro";
     }
   }
 
-  function loadSessionStorage() {
+  function loadSessionStorage(): ChatMessage[] {
     const storedMessages = sessionStorage.getItem("messageList");
     return storedMessages ? JSON.parse(storedMessages) : [];
   }
 
-  async function regenerateLastRequest(onRegenDone: { (): void; (): void; }) {
+  function cancelStream() {
+    if (abortController) {
+      abortController.abort();
+      abortController = null;
+    }
+    clearStreamTimeout();
+  }
+
+  function clearStreamTimeout() {
+    if (streamTimeoutHandle) {
+      clearTimeout(streamTimeoutHandle);
+      streamTimeoutHandle = undefined;
+    }
+  }
+
+  function resetStreamTimeout() {
+    clearStreamTimeout();
+    streamTimeoutHandle = window.setTimeout(() => {
+      console.warn("Stream timeout - no data received for", STREAM_TIMEOUT_MS, "ms");
+      cancelStream();
+    }, STREAM_TIMEOUT_MS);
+  }
+
+  async function regenerateLastRequest(onRegenDone: () => void) {
     if (messageList.length > 0) {
       messageList.pop();
-      messages.removeChild(messages.lastChild);
+      if (messagesEl.lastChild) {
+        messagesEl.removeChild(messagesEl.lastChild);
+      }
     }
 
     for (let i = messageList.length - 1; i >= 0; i--) {
@@ -107,127 +150,249 @@ import SendIcon from "./icons/Send.astro";
 
     const lastMessage = messageList[messageList.length - 1];
     if (lastMessage && lastMessage.role === "assistant") {
-      const lastBubble = messages.lastChild as HTMLElement;
-      const regenerateButton = createRegenerateButton();
-      regenerateButton.onclick = () =>
-        regenerateLastRequest(updateRegenerateButton);
-      lastBubble.appendChild(regenerateButton);
+      const lastBubble = messagesEl.lastChild as HTMLElement;
+      if (lastBubble) {
+        const regenerateButton = createRegenerateButton();
+        regenerateButton.onclick = () =>
+          regenerateLastRequest(updateRegenerateButton);
+        lastBubble.appendChild(regenerateButton);
+      }
     }
   }
 
-  if (typeof window !== "undefined") {
-    const form = document.getElementById("messageForm");
-    const textarea = document.getElementById("message");
-    if (form && textarea) {
-      form.addEventListener("submit", handleSubmit);
-      textarea.addEventListener("keydown", handleKeydown);
-    }
-
-    messageList = loadSessionStorage();
-    if (messageList.length > 0) {
-      header.classList.add("inactive");
-      const thinking = houston.think();
-      setTimeout(() => {
-        thinking.stop();
-        houston.emote("happy");
-      }, 1250);
-    }
-    messageList.forEach((msg) => {
-      if (msg.role === "user") {
-        createBubble({ class: "message", "data-user": "" }, msg.content, true, false);
-      } else if (msg.role === "assistant") {
-        createBubble({ class: "message" }, msg.content, true, false);
-      }
+  async function fetchStream(
+    requestMessageList: ChatMessage[],
+    timestamp: number,
+    signal: AbortSignal
+  ): Promise<Response> {
+    const response = await fetch("/api", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messages: requestMessageList,
+        time: timestamp,
+        temperature: 0.7,
+        session_id: sessionId,
+      }),
+      signal,
     });
 
-    updateRegenerateButton();
+    if (!response.ok) {
+      const errorBody = await response.text().catch(() => "");
+      let errorMsg = `HTTP error: ${response.status}`;
+      try {
+        const parsed = JSON.parse(errorBody);
+        if (parsed.error?.message) errorMsg = parsed.error.message;
+      } catch {}
+      throw new Error(errorMsg);
+    }
+
+    if (!response.body) {
+      throw new Error("No response body");
+    }
+
+    return response;
+  }
+
+  async function readStream(
+    response: Response,
+    signal: AbortSignal
+  ): Promise<{ text: string; completed: boolean }> {
+    const reader = response.body!.getReader();
+    const decoder = new TextDecoder("utf-8");
+    let accumulated = "";
+
+    try {
+      while (true) {
+        if (signal.aborted) {
+          reader.cancel();
+          return { text: accumulated, completed: false };
+        }
+
+        resetStreamTimeout();
+        const { value, done } = await reader.read();
+
+        if (done) break;
+
+        if (value) {
+          const text = decoder.decode(value, { stream: true });
+
+          // Check for server-side stream error signal
+          if (text.includes("[STREAM_ERROR]")) {
+            const cleaned = text.replace("[STREAM_ERROR]", "");
+            if (cleaned) {
+              accumulated += cleaned;
+              setStreamedResponse((old) => old + cleaned);
+            }
+            return { text: accumulated, completed: false };
+          }
+
+          // Check for completion signal
+          if (text.includes("[DONE]")) {
+            const cleaned = text.replace("[DONE]", "");
+            if (cleaned) {
+              accumulated += cleaned;
+              setStreamedResponse((old) => old + cleaned);
+            }
+            return { text: accumulated, completed: true };
+          }
+
+          accumulated += text;
+          setStreamedResponse((old) => old + text);
+        }
+      }
+    } catch (err: any) {
+      if (err.name === "AbortError") {
+        return { text: accumulated, completed: false };
+      }
+      console.error("Stream read error:", err);
+      return { text: accumulated, completed: false };
+    } finally {
+      clearStreamTimeout();
+      try { reader.cancel(); } catch {}
+    }
+
+    // Stream ended without explicit [DONE] - treat as completed
+    return { text: accumulated, completed: true };
   }
 
   async function handleRequest(_messageContent: string) {
     updateRegenerateButton();
 
     header.classList.add("inactive");
-    const thinking = houston.think();
+    houston.setConnectionState("connecting");
+    setSubmitVisible(false);
 
     if (streamedResponse()) {
-        setStreamedResponse("");
+      setStreamedResponse("");
     }
-    
+
     isStreaming = false;
     currentStreamBubble = null;
 
-    try {
-      const timestamp = Date.now();
-      const date = new Date(timestamp);
-      const localDate = new Intl.DateTimeFormat(undefined, {
-        year: "numeric", month: "2-digit", day: "2-digit", weekday: "long",
-        hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
-      }).format(date);
-      const updatedSystemRoleContent = `${systemRole.content} Current time: ${localDate}`;
-      const requestMessageList = [
-        { ...systemRole, content: updatedSystemRoleContent },
-        ...messageList.slice(-7),
-      ];
+    const timestamp = Date.now();
+    const date = new Date(timestamp);
+    const localDate = new Intl.DateTimeFormat(undefined, {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      weekday: "long",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    }).format(date);
+    const updatedSystemRoleContent = `${systemRole.content} Current time: ${localDate}`;
+    const requestMessageList = [
+      { ...systemRole, content: updatedSystemRoleContent },
+      ...messageList.slice(-7),
+    ];
 
-      const response = await fetch("/api", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          messages: requestMessageList,
-          time: timestamp,
-          temperature: 0.7,
-          session_id: sessionId,
-        }),
-      });
+    let accumulatedText = "";
+    let completed = false;
+    let lastError: Error | null = null;
 
-      if (!response.ok) {
-        throw new Error(`HTTP error: ${response.status}`);
-      }
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        // For retry attempts, wait and update state
+        if (attempt > 0) {
+          houston.setConnectionState("retrying");
+          const delay = RETRY_DELAYS[attempt - 1] || 3000;
+          await new Promise((r) => setTimeout(r, delay));
 
-      const data = response.body;
-      if (!data) {
-        throw new Error("No data");
-      }
-
-      const reader = data.getReader();
-      const decoder = new TextDecoder("utf-8");
-      let done = false;
-
-      while (!done) {
-        const { value, done: readerDone } = await reader.read();
-        if (value) {
-          const text = decoder.decode(value, { stream: true });
-          setStreamedResponse((old) => old + text);
+          // If we already got partial text, we're continuing - don't reset the signal
+          if (!accumulatedText) {
+            setStreamedResponse("");
+            isStreaming = false;
+            currentStreamBubble = null;
+          }
         }
-        done = readerDone;
-      }
 
-      if (streamedResponse() && !streamedResponse().endsWith("[DONE]")) {
-        emote = "happy";
-        messageList.push({ role: "assistant", content: streamedResponse() });
-      }
-      setStreamedResponse("");
-    } catch (err) {
-      console.error(err);
-      emote = "shocked";
-      const error = err as ErrorMessage;
-      const errorMessage = `Opps, something went wrong! ${error.message}`;
+        abortController = new AbortController();
+        const signal = abortController.signal;
 
+        const response = await fetchStream(requestMessageList, timestamp, signal);
+        houston.setConnectionState("streaming");
+
+        const result = await readStream(response, signal);
+        accumulatedText = result.text;
+        completed = result.completed;
+
+        if (completed || signal.aborted) {
+          break;
+        }
+
+        // Stream was interrupted but we got partial data
+        if (accumulatedText && attempt < MAX_RETRIES) {
+          console.warn(
+            `Stream interrupted after ${accumulatedText.length} chars, retry ${attempt + 1}/${MAX_RETRIES}`
+          );
+          lastError = new Error("Stream interrupted");
+          continue;
+        }
+
+        break;
+      } catch (err: any) {
+        lastError = err;
+        if (err.name === "AbortError") {
+          // User cancelled
+          break;
+        }
+        if (attempt < MAX_RETRIES) {
+          console.warn(
+            `Request failed (attempt ${attempt + 1}/${MAX_RETRIES + 1}):`,
+            err.message
+          );
+          continue;
+        }
+      }
+    }
+
+    // Finalize
+    abortController = null;
+    setSubmitVisible(true);
+
+    if (accumulatedText) {
+      messageList.push({ role: "assistant", content: accumulatedText });
+      updateSessionStorage();
+
+      if (completed) {
+        houston.setConnectionState("done");
+      } else {
+        houston.setConnectionState("interrupted");
+        // Auto-revert to idle after showing interrupted state
+        setTimeout(() => {
+          if (houston.connectionState === "interrupted") {
+            houston.setConnectionState("idle");
+          }
+        }, 2000);
+      }
+    } else if (lastError) {
+      houston.setConnectionState("error");
+      const errorMessage = `Oops, something went wrong! ${lastError.message || "Unknown error"}`;
       messageList.push({ role: "assistant", content: errorMessage });
       createBubble({ class: "sources" }, errorMessage, false, true);
-    } finally {
-      thinking.stop();
-      houston.emote(emote);
-      setTimeout(() => houston.emote("default"), 1250);
-      updateRegenerateButton();
+      updateSessionStorage();
+
+      setTimeout(() => {
+        if (houston.connectionState === "error") {
+          houston.setConnectionState("idle");
+        }
+      }, 2500);
+    } else {
+      // User cancelled with no text received
+      houston.setConnectionState("idle");
     }
+
+    setStreamedResponse("");
+    isStreaming = false;
+    currentStreamBubble = null;
+    updateRegenerateButton();
   }
 
   async function handleSubmit(event: Event) {
     event.preventDefault();
-    if (houston.classList.contains("loading")) {
+    if (houston.classList.contains("loading") || houston.classList.contains("state-streaming")) {
       return;
     }
 
@@ -241,6 +406,7 @@ import SendIcon from "./icons/Send.astro";
     createBubble({ class: "message", "data-user": "" }, message, true);
 
     textarea.value = "";
+    (textarea.parentNode as HTMLElement).dataset.value = "";
     textarea.blur();
 
     await handleRequest(message);
@@ -251,7 +417,7 @@ import SendIcon from "./icons/Send.astro";
     if (responseMessage) {
       if (!isStreaming) {
         createBubble({ class: "message" }, responseMessage, true, false);
-        currentStreamBubble = messages.lastChild as HTMLElement;
+        currentStreamBubble = messagesEl.lastChild as HTMLElement;
         isStreaming = true;
       } else {
         if (currentStreamBubble) {
@@ -259,24 +425,21 @@ import SendIcon from "./icons/Send.astro";
         }
       }
     }
-    if (responseMessage.endsWith("[DONE]")) {
-      isStreaming = false;
-    }
     if (currentStreamBubble) {
       currentStreamBubble.scrollIntoView({ behavior: "instant" });
       createCodeCopyButton(currentStreamBubble);
     }
   });
 
-  function handleKeydown(event: Event) {
+  function handleKeydown(event: KeyboardEvent) {
     const isMobile =
       /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
         navigator.userAgent
       );
+    const textarea = event.target as HTMLTextAreaElement;
     if (isMobile) {
       if (event.key === "Enter" && !event.shiftKey) {
         event.preventDefault();
-        const textarea = event.target;
         const cursorPosition = textarea.selectionStart;
         const textBeforeCursor = textarea.value.substring(0, cursorPosition);
         const textAfterCursor = textarea.value.substring(cursorPosition);
@@ -286,9 +449,46 @@ import SendIcon from "./icons/Send.astro";
     } else {
       if (event.key === "Enter" && !event.shiftKey) {
         event.preventDefault();
-        event.target.closest("form").requestSubmit();
+        textarea.closest("form")!.requestSubmit();
       }
     }
+  }
+
+  // Initialize
+  if (typeof window !== "undefined") {
+    const form = document.getElementById("messageForm");
+    const textarea = document.getElementById("message");
+    if (form && textarea) {
+      form.addEventListener("submit", handleSubmit);
+      textarea.addEventListener("keydown", handleKeydown);
+    }
+
+    stopBtn.addEventListener("click", () => {
+      cancelStream();
+    });
+
+    messageList = loadSessionStorage();
+    if (messageList.length > 0) {
+      header.classList.add("inactive");
+      houston.setConnectionState("connecting");
+      setTimeout(() => {
+        houston.setConnectionState("done");
+      }, 800);
+    }
+    messageList.forEach((msg) => {
+      if (msg.role === "user") {
+        createBubble(
+          { class: "message", "data-user": "" },
+          msg.content,
+          true,
+          false
+        );
+      } else if (msg.role === "assistant") {
+        createBubble({ class: "message" }, msg.content, true, false);
+      }
+    });
+
+    updateRegenerateButton();
   }
 
   window.addEventListener("beforeunload", updateSessionStorage);
