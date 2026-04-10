@@ -1,11 +1,13 @@
 import { defineConfig } from 'astro/config';
-import vercel from "@astrojs/vercel/serverless";
+import vercel from "@astrojs/vercel";
 import solidJs from '@astrojs/solid-js'
 
 export default defineConfig({
   // site: 'https://houston.ailoha.com/',
-  output: "server",
-  adapter: vercel({ webAnalytics: { enabled: true } }),
+  adapter: vercel({
+    webAnalytics: { enabled: true },
+    maxDuration: 60,
+  }),
   integrations: [
     solidJs(),
   ],

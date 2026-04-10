@@ -14,9 +14,9 @@
     "astro": "astro"
   },
   "dependencies": {
-    "@astrojs/solid-js": "^3.0.2",
-    "@astrojs/vercel": "^5.2.0",
-    "astro": "^3.5.4",
+    "@astrojs/solid-js": "^6.0.1",
+    "@astrojs/vercel": "^10.0.4",
+    "astro": "^6.1.5",
     "eventsource-parser": "^1.1.1",
     "highlight.js": "^11.9.0",
     "katex": "^0.16.9",

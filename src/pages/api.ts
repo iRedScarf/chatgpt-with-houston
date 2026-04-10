@@ -23,6 +23,8 @@
 import { generatePayload, parseOpenAIStream } from "../utils/generate";
 import type { APIRoute } from "astro";
 
+export const prerender = false;
+
 const apiKey = import.meta.env.OPENAI_API_KEY;
 const apiEndpoint = (
   import.meta.env.OPENAI_API_ENDPOINT ||
