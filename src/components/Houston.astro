@@ -237,6 +237,11 @@ const {
       const prev = this._connectionState;
       this._connectionState = state;
 
+      // Once a conversation starts, Houston stays compact permanently
+      if (state !== "idle" || this.classList.contains("compact")) {
+        this.classList.add("compact");
+      }
+
       // Remove previous state classes
       this.classList.remove("state-retrying", "state-error", "state-streaming");
       this.dataset.connectionState = state;
@@ -260,7 +265,7 @@ const {
           break;
 
         case "streaming":
-          this.classList.remove("loading");
+          this.classList.remove("active", "loading");
           this.classList.add("state-streaming");
           this.talk();
           break;
@@ -1099,15 +1104,6 @@ const {
       transform: translateY(calc(var(--border-width) * -1.5));
     }
   }
-  @keyframes fade {
-    from,
-    to {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0.4;
-    }
-  }
   hey-houston * {
     box-sizing: border-box;
   }
@@ -1166,6 +1162,10 @@ const {
   hey-houston:hover .face {
     transform: translate(calc(var(--x) * 5%), calc(var(--y) * 25%));
   }
+  hey-houston.compact {
+    margin: -1rem 0 -1rem 0;
+    transform: scale(0.5);
+  }
   hey-houston.active {
     margin: -1rem 0 -1rem 0;
     transform: scale(0.5);
@@ -1181,8 +1181,7 @@ const {
     margin: 17.5% auto;
     width: calc(var(--border-width) * 2);
     border-radius: calc(var(--border-width) / 4);
-    animation: floating 1s cubic-bezier(0.76, 0, 0.24, 1) infinite,
-      fade 1s ease-in-out infinite;
+    animation: floating 1s cubic-bezier(0.76, 0, 0.24, 1) infinite;
   }
   .loading :is(.eye:first-child) {
     animation-delay: 0;
@@ -1248,12 +1247,10 @@ const {
     align-self: flex-end;
   }
   hey-houston.state-retrying::before {
-    animation: floating 6s 0.3s ease-in-out infinite,
-      pulse-warning 1.5s ease-in-out infinite;
+    animation: floating 6s 0.3s ease-in-out infinite;
   }
   hey-houston.state-retrying .container {
-    animation: floating 6s cubic-bezier(0.76, 0, 0.24, 1) infinite,
-      pulse-warning 1.5s ease-in-out infinite;
+    animation: floating 6s cubic-bezier(0.76, 0, 0.24, 1) infinite;
   }
   hey-houston.state-error::before {
     --border-color: conic-gradient(
@@ -1288,13 +1285,5 @@ const {
       #bc52ee 200deg,
       #4af2c8 360deg
     );
-  }
-  @keyframes pulse-warning {
-    0%, 100% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0.5;
-    }
   }
 </style>
