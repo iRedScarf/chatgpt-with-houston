@@ -237,6 +237,11 @@ const {
       const prev = this._connectionState;
       this._connectionState = state;
 
+      // Once a conversation starts, Houston stays compact permanently
+      if (state !== "idle" || this.classList.contains("compact")) {
+        this.classList.add("compact");
+      }
+
       // Remove previous state classes
       this.classList.remove("state-retrying", "state-error", "state-streaming");
       this.dataset.connectionState = state;
@@ -260,7 +265,7 @@ const {
           break;
 
         case "streaming":
-          this.classList.remove("loading");
+          this.classList.remove("active", "loading");
           this.classList.add("state-streaming");
           this.talk();
           break;
@@ -1165,6 +1170,10 @@ const {
   }
   hey-houston:hover .face {
     transform: translate(calc(var(--x) * 5%), calc(var(--y) * 25%));
+  }
+  hey-houston.compact {
+    margin: -1rem 0 -1rem 0;
+    transform: scale(0.5);
   }
   hey-houston.active {
     margin: -1rem 0 -1rem 0;
