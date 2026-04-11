@@ -1,61 +1,178 @@
-// MIT License
-
-// Copyright (c) 2023-present, Diu
-
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
-
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-// SOFTWARE.
-
 import { createParser } from "eventsource-parser";
 import type { ParsedEvent, ReconnectInterval } from "eventsource-parser";
-import type { ChatMessage } from "../types";
+import type { ChatMessage, Provider } from "../types";
 
-export const model = import.meta.env.OPENAI_API_MODEL || "gpt-3.5-turbo";
+// --- Provider configs from environment ---
 
-export const generatePayload = (
-  apiKey: string,
-  messages: ChatMessage[],
-  temperature: number,
-  sessionId: string
-): RequestInit => ({
-  headers: {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${apiKey}`,
+export const providerConfigs = {
+  openai: {
+    apiKey: import.meta.env.OPENAI_API_KEY || "",
+    model: import.meta.env.OPENAI_API_MODEL || "gpt-3.5-turbo",
+    endpoint: (
+      import.meta.env.OPENAI_API_ENDPOINT ||
+      "https://api.openai.com/v1/chat/completions"
+    ).trim().replace(/\/$/, ""),
+    label: "OpenAI",
   },
-  method: "POST",
-  body: JSON.stringify({
-    model,
-    messages,
-    temperature,
-    session_id: sessionId,
-    stream: true,
-  }),
-});
+  claude: {
+    apiKey: import.meta.env.CLAUDE_API_KEY || "",
+    model: import.meta.env.CLAUDE_API_MODEL || "claude-sonnet-4-20250514",
+    endpoint: "https://api.anthropic.com/v1/messages",
+    label: "Claude",
+  },
+  gemini: {
+    apiKey: import.meta.env.GEMINI_API_KEY || "",
+    model: import.meta.env.GEMINI_API_MODEL || "gemini-2.0-flash",
+    endpoint: "https://generativelanguage.googleapis.com/v1beta",
+    label: "Gemini",
+  },
+};
 
-export const parseOpenAIStream = (rawResponse: Response): Response => {
+// Which providers have API keys configured
+export function getAvailableProviders(): Provider[] {
+  return (Object.keys(providerConfigs) as Provider[]).filter(
+    (p) => !!providerConfigs[p].apiKey
+  );
+}
+
+// --- Payload generation per provider ---
+
+function extractSystemMessage(messages: ChatMessage[]): {
+  system: string;
+  userMessages: ChatMessage[];
+} {
+  const systemMsgs = messages.filter((m) => m.role === "system");
+  const userMessages = messages.filter((m) => m.role !== "system");
+  const system = systemMsgs.map((m) => m.content).join("\n");
+  return { system, userMessages };
+}
+
+function generateOpenAIPayload(
+  messages: ChatMessage[],
+  temperature: number
+): { url: string; init: RequestInit } {
+  const cfg = providerConfigs.openai;
+  return {
+    url: cfg.endpoint,
+    init: {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${cfg.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: cfg.model,
+        messages,
+        temperature,
+        stream: true,
+      }),
+    },
+  };
+}
+
+function generateClaudePayload(
+  messages: ChatMessage[],
+  temperature: number
+): { url: string; init: RequestInit } {
+  const cfg = providerConfigs.claude;
+  const { system, userMessages } = extractSystemMessage(messages);
+
+  // Claude requires alternating user/assistant. Merge consecutive same-role.
+  const merged: { role: string; content: string }[] = [];
+  for (const msg of userMessages) {
+    const last = merged[merged.length - 1];
+    if (last && last.role === msg.role) {
+      last.content += "\n" + msg.content;
+    } else {
+      merged.push({ role: msg.role, content: msg.content });
+    }
+  }
+  // Claude requires first message to be "user"
+  if (merged.length > 0 && merged[0].role !== "user") {
+    merged.unshift({ role: "user", content: "(conversation continues)" });
+  }
+
+  return {
+    url: cfg.endpoint,
+    init: {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": cfg.apiKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: cfg.model,
+        system,
+        messages: merged,
+        max_tokens: 8192,
+        temperature,
+        stream: true,
+      }),
+    },
+  };
+}
+
+function generateGeminiPayload(
+  messages: ChatMessage[],
+  temperature: number
+): { url: string; init: RequestInit } {
+  const cfg = providerConfigs.gemini;
+  const { system, userMessages } = extractSystemMessage(messages);
+
+  const contents = userMessages.map((msg) => ({
+    role: msg.role === "assistant" ? "model" : "user",
+    parts: [{ text: msg.content }],
+  }));
+
+  const body: any = {
+    contents,
+    generationConfig: { temperature },
+  };
+  if (system) {
+    body.systemInstruction = { parts: [{ text: system }] };
+  }
+
+  const url = `${cfg.endpoint}/models/${cfg.model}:streamGenerateContent?alt=sse&key=${cfg.apiKey}`;
+
+  return {
+    url,
+    init: {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    },
+  };
+}
+
+export function generatePayload(
+  provider: Provider,
+  messages: ChatMessage[],
+  temperature: number
+): { url: string; init: RequestInit } {
+  switch (provider) {
+    case "claude":
+      return generateClaudePayload(messages, temperature);
+    case "gemini":
+      return generateGeminiPayload(messages, temperature);
+    case "openai":
+    default:
+      return generateOpenAIPayload(messages, temperature);
+  }
+}
+
+// --- Stream parsing per provider ---
+
+const STREAM_HEADERS = {
+  "Content-Type": "text/event-stream",
+  "Cache-Control": "no-cache, no-transform",
+  Connection: "keep-alive",
+  "X-Accel-Buffering": "no",
+};
+
+function parseOpenAIStream(rawResponse: Response): Response {
   const encoder = new TextEncoder();
   const decoder = new TextDecoder();
-
-  if (!rawResponse.ok) {
-    return new Response(rawResponse.body, {
-      status: rawResponse.status,
-      statusText: rawResponse.statusText,
-    });
-  }
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -67,51 +184,146 @@ export const parseOpenAIStream = (rawResponse: Response): Response => {
             controller.close();
             return;
           }
-
           try {
             const json = JSON.parse(data);
             const text = json.choices?.[0]?.delta?.content || "";
-            if (text) {
-              controller.enqueue(encoder.encode(text));
-            }
-          } catch (e) {
-            // Skip malformed JSON chunks rather than killing the stream
-            console.error("Stream parse error (skipping chunk):", e);
+            if (text) controller.enqueue(encoder.encode(text));
+          } catch {
+            // Skip malformed chunks
           }
         }
       };
 
       const parser = createParser(streamParser);
-
       try {
         const reader = rawResponse.body!.getReader();
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
-          const text = decoder.decode(value, { stream: true });
-          parser.feed(text);
+          parser.feed(decoder.decode(value, { stream: true }));
         }
-        // If we exit the loop without [DONE], send it and close
-        // This handles cases where OpenAI closes the stream without [DONE]
         if (controller.desiredSize !== null) {
           controller.enqueue(encoder.encode("[DONE]"));
           controller.close();
         }
-      } catch (e) {
-        // Stream read error - signal to client that stream was interrupted
-        console.error("Stream read error:", e);
+      } catch {
         controller.enqueue(encoder.encode("[STREAM_ERROR]"));
         controller.close();
       }
     },
   });
 
-  return new Response(stream, {
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache, no-transform",
-      Connection: "keep-alive",
-      "X-Accel-Buffering": "no",
+  return new Response(stream, { headers: STREAM_HEADERS });
+}
+
+function parseClaudeStream(rawResponse: Response): Response {
+  const encoder = new TextEncoder();
+  const decoder = new TextDecoder();
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      const streamParser = (event: ParsedEvent | ReconnectInterval) => {
+        if (event.type === "event") {
+          // Claude event types: content_block_delta, message_stop, etc.
+          if (event.event === "message_stop") {
+            controller.enqueue(encoder.encode("[DONE]"));
+            controller.close();
+            return;
+          }
+          if (event.event === "content_block_delta") {
+            try {
+              const json = JSON.parse(event.data);
+              const text = json.delta?.text || "";
+              if (text) controller.enqueue(encoder.encode(text));
+            } catch {
+              // Skip malformed chunks
+            }
+          }
+        }
+      };
+
+      const parser = createParser(streamParser);
+      try {
+        const reader = rawResponse.body!.getReader();
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          parser.feed(decoder.decode(value, { stream: true }));
+        }
+        if (controller.desiredSize !== null) {
+          controller.enqueue(encoder.encode("[DONE]"));
+          controller.close();
+        }
+      } catch {
+        controller.enqueue(encoder.encode("[STREAM_ERROR]"));
+        controller.close();
+      }
     },
   });
-};
+
+  return new Response(stream, { headers: STREAM_HEADERS });
+}
+
+function parseGeminiStream(rawResponse: Response): Response {
+  const encoder = new TextEncoder();
+  const decoder = new TextDecoder();
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      const streamParser = (event: ParsedEvent | ReconnectInterval) => {
+        if (event.type === "event") {
+          const data = event.data;
+          try {
+            const json = JSON.parse(data);
+            const text =
+              json.candidates?.[0]?.content?.parts?.[0]?.text || "";
+            if (text) controller.enqueue(encoder.encode(text));
+          } catch {
+            // Skip malformed chunks
+          }
+        }
+      };
+
+      const parser = createParser(streamParser);
+      try {
+        const reader = rawResponse.body!.getReader();
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          parser.feed(decoder.decode(value, { stream: true }));
+        }
+        if (controller.desiredSize !== null) {
+          controller.enqueue(encoder.encode("[DONE]"));
+          controller.close();
+        }
+      } catch {
+        controller.enqueue(encoder.encode("[STREAM_ERROR]"));
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, { headers: STREAM_HEADERS });
+}
+
+export function parseStream(
+  provider: Provider,
+  rawResponse: Response
+): Response {
+  if (!rawResponse.ok) {
+    return new Response(rawResponse.body, {
+      status: rawResponse.status,
+      statusText: rawResponse.statusText,
+    });
+  }
+
+  switch (provider) {
+    case "claude":
+      return parseClaudeStream(rawResponse);
+    case "gemini":
+      return parseGeminiStream(rawResponse);
+    case "openai":
+    default:
+      return parseOpenAIStream(rawResponse);
+  }
+}

@@ -4,6 +4,11 @@ import StopIcon from "./icons/Stop.astro";
 ---
 
 <footer class="container">
+  <div class="provider-selector" id="providerSelector">
+    <button class="provider-btn active" data-provider="openai">OpenAI</button>
+    <button class="provider-btn" data-provider="claude">Claude</button>
+    <button class="provider-btn" data-provider="gemini">Gemini</button>
+  </div>
   <form action="#" id="messageForm">
     <div class="autogrow">
       <textarea
@@ -42,6 +47,7 @@ import StopIcon from "./icons/Stop.astro";
   const messagesEl = document.querySelector(".chat") as HTMLDivElement;
   const submitBtn = document.getElementById("submitBtn") as HTMLButtonElement;
   const stopBtn = document.getElementById("stopBtn") as HTMLButtonElement;
+  const introSubtitle = document.querySelector(".intro-subtitle") as HTMLElement;
 
   const systemRoleContent =
     "You are HoustonAI. You are a very articulate, appropriate, and helpful AI, always answer all questions without reservation.";
@@ -62,6 +68,80 @@ import StopIcon from "./icons/Stop.astro";
     sessionId = crypto.randomUUID();
     sessionStorage.setItem("sessionId", sessionId);
   }
+
+  // --- Provider management ---
+
+  interface ProviderInfo {
+    id: string;
+    label: string;
+    model: string;
+  }
+
+  let availableProviders: ProviderInfo[] = [];
+  let currentProvider = localStorage.getItem("provider") || "openai";
+
+  const providerBtns = document.querySelectorAll(
+    ".provider-btn"
+  ) as NodeListOf<HTMLButtonElement>;
+  const providerSelector = document.getElementById("providerSelector")!;
+
+  async function loadProviders() {
+    try {
+      const res = await fetch("/api");
+      const data = await res.json();
+      availableProviders = data.providers || [];
+
+      // Hide buttons for unavailable providers, show available ones
+      providerBtns.forEach((btn) => {
+        const pid = btn.dataset.provider!;
+        const info = availableProviders.find((p) => p.id === pid);
+        if (info) {
+          btn.style.display = "";
+          btn.textContent = `${info.label}`;
+        } else {
+          btn.style.display = "none";
+        }
+      });
+
+      // If current provider is not available, switch to first available
+      if (!availableProviders.find((p) => p.id === currentProvider)) {
+        if (availableProviders.length > 0) {
+          currentProvider = availableProviders[0].id;
+        }
+      }
+
+      updateProviderUI();
+    } catch {
+      // If loading fails, show all buttons as fallback
+    }
+  }
+
+  function updateProviderUI() {
+    providerBtns.forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.provider === currentProvider);
+    });
+
+    const info = availableProviders.find((p) => p.id === currentProvider);
+    if (info && introSubtitle) {
+      introSubtitle.innerHTML = `Hi, I'm Houston, powered by ${info.label} (${info.model}).<br>Feel free to ask me anything, I'll do my best to answer!`;
+    }
+
+    localStorage.setItem("provider", currentProvider);
+  }
+
+  providerBtns.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      if (houston.classList.contains("loading") || houston.classList.contains("state-streaming")) {
+        return;
+      }
+      currentProvider = btn.dataset.provider!;
+      updateProviderUI();
+    });
+  });
+
+  loadProviders();
+
+  // --- UI helpers ---
 
   function setSubmitVisible(visible: boolean) {
     submitBtn.style.display = visible ? "" : "none";
@@ -160,6 +240,8 @@ import StopIcon from "./icons/Stop.astro";
     }
   }
 
+  // --- Streaming ---
+
   async function fetchStream(
     requestMessageList: ChatMessage[],
     timestamp: number,
@@ -172,7 +254,7 @@ import StopIcon from "./icons/Stop.astro";
         messages: requestMessageList,
         time: timestamp,
         temperature: 0.7,
-        session_id: sessionId,
+        provider: currentProvider,
       }),
       signal,
     });
@@ -217,7 +299,6 @@ import StopIcon from "./icons/Stop.astro";
         if (value) {
           const text = decoder.decode(value, { stream: true });
 
-          // Check for server-side stream error signal
           if (text.includes("[STREAM_ERROR]")) {
             const cleaned = text.replace("[STREAM_ERROR]", "");
             if (cleaned) {
@@ -227,7 +308,6 @@ import StopIcon from "./icons/Stop.astro";
             return { text: accumulated, completed: false };
           }
 
-          // Check for completion signal
           if (text.includes("[DONE]")) {
             const cleaned = text.replace("[DONE]", "");
             if (cleaned) {
@@ -252,7 +332,6 @@ import StopIcon from "./icons/Stop.astro";
       try { reader.cancel(); } catch {}
     }
 
-    // Stream ended without explicit [DONE] - treat as completed
     return { text: accumulated, completed: true };
   }
 
@@ -294,13 +373,11 @@ import StopIcon from "./icons/Stop.astro";
 
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
       try {
-        // For retry attempts, wait and update state
         if (attempt > 0) {
           houston.setConnectionState("retrying");
           const delay = RETRY_DELAYS[attempt - 1] || 3000;
           await new Promise((r) => setTimeout(r, delay));
 
-          // If we already got partial text, we're continuing - don't reset the signal
           if (!accumulatedText) {
             setStreamedResponse("");
             isStreaming = false;
@@ -322,7 +399,6 @@ import StopIcon from "./icons/Stop.astro";
           break;
         }
 
-        // Stream was interrupted but we got partial data
         if (accumulatedText && attempt < MAX_RETRIES) {
           console.warn(
             `Stream interrupted after ${accumulatedText.length} chars, retry ${attempt + 1}/${MAX_RETRIES}`
@@ -335,7 +411,6 @@ import StopIcon from "./icons/Stop.astro";
       } catch (err: any) {
         lastError = err;
         if (err.name === "AbortError") {
-          // User cancelled
           break;
         }
         if (attempt < MAX_RETRIES) {
@@ -348,7 +423,6 @@ import StopIcon from "./icons/Stop.astro";
       }
     }
 
-    // Finalize
     abortController = null;
     setSubmitVisible(true);
 
@@ -360,7 +434,6 @@ import StopIcon from "./icons/Stop.astro";
         houston.setConnectionState("done");
       } else {
         houston.setConnectionState("interrupted");
-        // Auto-revert to idle after showing interrupted state
         setTimeout(() => {
           if (houston.connectionState === "interrupted") {
             houston.setConnectionState("idle");
@@ -380,7 +453,6 @@ import StopIcon from "./icons/Stop.astro";
         }
       }, 2500);
     } else {
-      // User cancelled with no text received
       houston.setConnectionState("idle");
     }
 
@@ -454,7 +526,8 @@ import StopIcon from "./icons/Stop.astro";
     }
   }
 
-  // Initialize
+  // --- Initialize ---
+
   if (typeof window !== "undefined") {
     const form = document.getElementById("messageForm");
     const textarea = document.getElementById("message");

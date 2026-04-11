@@ -113,6 +113,34 @@ footer {
   position: relative;
 }
 
+.provider-selector {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.5rem 0;
+  justify-content: center;
+}
+.provider-btn {
+  padding: 0.35rem 0.85rem;
+  border-radius: 1rem;
+  border: 1px solid #343841;
+  background: #23262d;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 200ms ease;
+  width: auto;
+  height: auto;
+}
+.provider-btn:hover {
+  color: white;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+.provider-btn.active {
+  background: linear-gradient(83.21deg, #3245ff 0%, #bc52ee 100%);
+  border-color: transparent;
+  color: white;
+}
+
 footer button[type="submit"],
 footer .stop-btn {
   position: absolute;
