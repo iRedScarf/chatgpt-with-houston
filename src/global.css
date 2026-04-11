@@ -141,11 +141,12 @@ footer {
   color: white;
 }
 
-footer button[type="submit"],
-footer .stop-btn {
+.autogrow button[type="submit"],
+.autogrow .stop-btn {
   position: absolute;
   right: 19px;
   top: 19px;
+  z-index: 1;
   --size: 2.5rem;
   width: var(--size);
   height: var(--size);
@@ -156,7 +157,7 @@ footer .stop-btn {
   justify-content: center;
   cursor: pointer;
 }
-footer .stop-btn {
+.autogrow .stop-btn {
   background: linear-gradient(83.21deg, #ff3245 0%, #ee52bc 100%);
 }
 footer svg {
@@ -164,6 +165,7 @@ footer svg {
 }
 
 .autogrow {
+  position: relative;
   display: grid;
   overflow-y: scroll;
   padding-left: 1px;
