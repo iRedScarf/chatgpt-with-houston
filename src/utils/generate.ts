@@ -7,7 +7,7 @@ import type { ChatMessage, Provider } from "../types";
 export const providerConfigs = {
   openai: {
     apiKey: import.meta.env.OPENAI_API_KEY || "",
-    model: import.meta.env.OPENAI_API_MODEL || "gpt-3.5-turbo",
+    model: import.meta.env.OPENAI_API_MODEL || "gpt-5.4-mini",
     endpoint: (
       import.meta.env.OPENAI_API_ENDPOINT ||
       "https://api.openai.com/v1/chat/completions"
@@ -16,13 +16,13 @@ export const providerConfigs = {
   },
   claude: {
     apiKey: import.meta.env.CLAUDE_API_KEY || "",
-    model: import.meta.env.CLAUDE_API_MODEL || "claude-sonnet-4-20250514",
+    model: import.meta.env.CLAUDE_API_MODEL || "claude-haiku-4-5",
     endpoint: "https://api.anthropic.com/v1/messages",
     label: "Claude",
   },
   gemini: {
     apiKey: import.meta.env.GEMINI_API_KEY || "",
-    model: import.meta.env.GEMINI_API_MODEL || "gemini-2.0-flash",
+    model: import.meta.env.GEMINI_API_MODEL || "gemini-3-flash-preview",
     endpoint: "https://generativelanguage.googleapis.com/v1beta",
     label: "Gemini",
   },
