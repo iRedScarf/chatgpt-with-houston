@@ -1104,15 +1104,6 @@ const {
       transform: translateY(calc(var(--border-width) * -1.5));
     }
   }
-  @keyframes fade {
-    from,
-    to {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0.4;
-    }
-  }
   hey-houston * {
     box-sizing: border-box;
   }
@@ -1256,12 +1247,10 @@ const {
     align-self: flex-end;
   }
   hey-houston.state-retrying::before {
-    animation: floating 6s 0.3s ease-in-out infinite,
-      pulse-warning 1.5s ease-in-out infinite;
+    animation: floating 6s 0.3s ease-in-out infinite;
   }
   hey-houston.state-retrying .container {
-    animation: floating 6s cubic-bezier(0.76, 0, 0.24, 1) infinite,
-      pulse-warning 1.5s ease-in-out infinite;
+    animation: floating 6s cubic-bezier(0.76, 0, 0.24, 1) infinite;
   }
   hey-houston.state-error::before {
     --border-color: conic-gradient(
@@ -1296,13 +1285,5 @@ const {
       #bc52ee 200deg,
       #4af2c8 360deg
     );
-  }
-  @keyframes pulse-warning {
-    0%, 100% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0.5;
-    }
   }
 </style>
